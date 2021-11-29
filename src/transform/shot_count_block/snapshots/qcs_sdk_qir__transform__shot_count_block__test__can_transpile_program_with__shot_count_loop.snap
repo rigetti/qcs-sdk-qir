@@ -1,0 +1,51 @@
+---
+source: src/transform/shot_count_block/mod.rs
+expression: context.module.print_to_string().to_str().unwrap()
+
+---
+; ModuleID = 'qcs'
+source_filename = "./test/fixtures/programs/shot_count_loop.ll"
+
+%Qubit = type opaque
+%Executable = type opaque
+%ExecutionResult = type opaque
+
+@parameter_memory_region_name = private unnamed_addr constant [12 x i8] c"__qir_param\00", align 1
+@quantum_processor_id = private unnamed_addr constant [9 x i8] c"Aspen-10\00", align 1
+@quil_program = private unnamed_addr constant [24 x i8] c"DECLARE ro BIT[0]\0AH 12\0A\00", align 1
+
+declare void @__quantum__qis__h__body(%Qubit*) local_unnamed_addr
+
+define internal fastcc void @QuantumApplication__Run__body() unnamed_addr {
+entry:
+  br label %body_execution
+
+body:                                             ; preds = %body, %body_execution
+  %0 = phi i64 [ %1, %body ], [ 1, %body_execution ]
+  %1 = add nuw nsw i64 %0, 1
+  %2 = icmp ult i64 %0, 1000
+  br i1 %2, label %body, label %exit
+
+body_execution:                                   ; preds = %entry, <null operand!>
+  %3 = call %Executable* @executable_from_quil(i8* getelementptr inbounds ([24 x i8], [24 x i8]* @quil_program, i32 0, i32 0))
+  call void @wrap_in_shots(%Executable* %3, i32 1000)
+  %4 = call %ExecutionResult* @execute_on_qpu(%Executable* %3, i8* getelementptr inbounds ([9 x i8], [9 x i8]* @quantum_processor_id, i32 0, i32 0))
+  call void @panic_on_failure(%ExecutionResult* %4)
+  br label %body
+
+exit:                                             ; preds = %body, <null operand!>
+  ret void
+}
+
+declare %Executable* @executable_from_quil(i8*)
+
+declare %ExecutionResult* @execute_on_qpu(%Executable*, i8*)
+
+declare i1 @get_readout_bit(%ExecutionResult*, i64, i64)
+
+declare void @panic_on_failure(%ExecutionResult*)
+
+declare void @set_param(%Executable*, i8*, i32, double)
+
+declare void @wrap_in_shots(%Executable*, i32)
+
