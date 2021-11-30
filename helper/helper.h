@@ -12,16 +12,16 @@ void panic_on_failure(ExecutionResult *result)
    else
    {
       printf("execution successful\n");
-      const ExecutionData *ro = get_data(result->handle, "ro");
-      for (int shot = 0; shot < ro->number_of_shots; shot++)
-      {
+      // const ExecutionData *ro = get_data(result->handle, "ro");
+      // for (int shot = 0; shot < ro->number_of_shots; shot++)
+      // {
 
-         for (int qubit_index = 0; qubit_index < ro->shot_length; qubit_index++)
-         {
-            printf("%d", ro->data.byte[shot][qubit_index]);
-         }
-         printf(">\n");
-      }
+      //    for (int qubit_index = 0; qubit_index < ro->shot_length; qubit_index++)
+      //    {
+      //       printf("%d", ro->data.byte[shot][qubit_index]);
+      //    }
+      //    printf(">\n");
+      // }
    }
 }
 
