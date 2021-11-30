@@ -12,7 +12,7 @@ Given an input QIR program that might look like this:
 
 declare void @__quantum__qis__h__body(%Qubit*) local_unnamed_addr
 declare void @__quantum__qis__mz__body(%Qubit*, %Result*) local_unnamed_addr
-declare i1 @__quantum__qir__read_result(%Result*) local_unnamed_addr
+declare i1 @__quantum__qis__read_result__body(%Result*) local_unnamed_addr
 
 ; simple function which measures a single qubit and that's it.
 define internal fastcc void @QuantumApplication__Run__body() unnamed_addr {
@@ -26,7 +26,7 @@ body:
 
     ; measure a given qubit index
     tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Result* null)
-    %1 = tail call i1 @__quantum__qir__read_result(%Result* null)
+    %1 = tail call i1 @__quantum__qis__read_result__body(%Result* null)
 
     ; shot count branch
     %2 = add nuw nsw i64 %0, 1
@@ -65,7 +65,7 @@ declare void @__quantum__qis__h__body(%Qubit*) local_unnamed_addr
 
 declare void @__quantum__qis__mz__body(%Qubit*, %Result*) local_unnamed_addr
 
-declare i1 @__quantum__qir__read_result(%Result*) local_unnamed_addr
+declare i1 @__quantum__qis__read_result__body(%Result*) local_unnamed_addr
 
 define internal fastcc void @QuantumApplication__Run__body() unnamed_addr {
 entry:
@@ -131,7 +131,7 @@ Build the CLI using `cargo build --bin`.
 To transpile an input QIR program, run the CLI:
 
 ```
-cargo run transform path/to/input.bc path/to/output.bc --main-entrypoint
+cargo run transform path/to/input.bc path/to/output.bc --add-main-entrypoint
 ```
 
 Use the `--help` flag to view all options:
