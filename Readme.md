@@ -115,7 +115,7 @@ This crate has the following external dependencies:
 * [cargo-make](https://github.com/sagiegurari/cargo-make) as a task runner - install that with `cargo install cargo-make`.
 * LLVM 11 installed and available on your `PATH`. If you can't run `llvm-config`, then you will be unable to build this crate. 
 * A C compiler, such as `gcc` or `clang`, which supports LLVM 11 at a minimum. For OSX users, this means XCode version >= 12.5.
-* The QCS SDK shared library, which may be built or downloaded as described [here](https://github.com/rigetti/qcs-sdk-c).
+* The QCS SDK shared library, which may be built or downloaded as described [here](https://github.com/rigetti/qcs-sdk-c). (**IMPORTANT**: while in development, use the `7-execution-result-pointer` branch).
 
 You'll also need to compile the shared "helper" library contained in the `helper` directory. This small shared library is used to reduce the complexity required within this crate's LLVM transformations.
 
