@@ -124,6 +124,20 @@ cd helper
 ./build.sh
 ```
 
+Once that's compiled, make sure to set the relevant environment variables to point to it, within the terminal where you'll be transpiling and running your QIR programs:
+
+```sh
+# Linux
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/qcs-sdk-qir/helper
+
+# OSX
+export DYLD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/qcs-sdk-qir/helper
+
+# Windows? (To be verified)
+export PATH=$PATH:/path/to/qcs-sdk-qir/helper
+```
+
+
 Build the CLI using `cargo build --bin`.
 
 ## Transform QIR
@@ -209,14 +223,7 @@ dyld: Library not loaded: libhelper.dylib
   Reason: image not found
 ```
 
-The fix: set your `LD_LIBRARY_PATH` (and `DYLD_LIBRARY_PATH`) to include the relevant irectory:
-
-```sh
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/quil-qir/helper
-
-# on OSX
-export DYLD_LIBRARY_PATH=$LD_LIBRARY_PATH
-```
+The fix: set your `LD_LIBRARY_PATH` / `DYLD_LIBRARY_PATH` / `PATH` to include the relevant directory as described above in [Setup](#setup).
 
 ### Runtime error: program hangs for 30 seconds on start
 
