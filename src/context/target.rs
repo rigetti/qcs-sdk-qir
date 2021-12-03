@@ -3,7 +3,7 @@ use std::str::FromStr;
 #[derive(Debug)]
 pub(crate) enum ExecutionTarget {
     QPU(String),
-    QVM
+    QVM,
 }
 
 impl Default for ExecutionTarget {
@@ -18,7 +18,7 @@ impl FromStr for ExecutionTarget {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s.to_lowercase().as_str() {
             "qvm" => Self::QVM,
-            _ => Self::QPU(String::from(s))
+            _ => Self::QPU(String::from(s)),
         })
     }
 }

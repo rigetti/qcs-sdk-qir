@@ -283,7 +283,9 @@ impl<'ctx> Values<'ctx> {
             parameter_memory_region_name: build_parameter_memory_region_name(
                 context, builder, module, types,
             ),
-            quantum_processor_id: build_quantum_processor_id(context, builder, module, types, target),
+            quantum_processor_id: build_quantum_processor_id(
+                context, builder, module, types, target,
+            ),
             set_param_function: build_set_param_function(context, builder, module, types),
             wrap_in_shots_function: build_wrap_in_shots_function(context, builder, module, types),
         }

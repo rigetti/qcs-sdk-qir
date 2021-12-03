@@ -72,7 +72,11 @@ pub(crate) fn execute_on_qpu<'ctx>(
         context.values.execute_on_qpu_function(),
         &[
             executable.0.into(),
-            context.values.quantum_processor_id().expect("expected a quantum processor ID to be provided").into(),
+            context
+                .values
+                .quantum_processor_id()
+                .expect("expected a quantum processor ID to be provided")
+                .into(),
         ],
         "",
     );
@@ -91,9 +95,7 @@ pub(crate) fn execute_on_qvm<'ctx>(
 ) -> ExecutionResult<'ctx> {
     let execution_result = context.builder.build_call(
         context.values.execute_on_qvm_function(),
-        &[
-            executable.0.into(),
-        ],
+        &[executable.0.into()],
         "",
     );
 

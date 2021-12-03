@@ -41,7 +41,7 @@ enum QCSQIRCLI {
         add_main_entrypoint: bool,
 
         #[structopt(name = "target", long, default_value = "qvm")]
-        execution_target: ExecutionTarget
+        execution_target: ExecutionTarget,
     },
 }
 
@@ -63,7 +63,7 @@ fn main() -> Result<(), ()> {
                 llvm_bitcode_path
                     .to_str()
                     .expect("provided LLVM bitcode path is not valid"),
-                    execution_target
+                execution_target,
             );
 
             transpile_module(&mut context);

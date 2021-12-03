@@ -13,8 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  **/
-
-use super::{types::Types, values::Values, target::ExecutionTarget};
+use super::{target::ExecutionTarget, types::Types, values::Values};
 
 use crate::interop::load::load_module_from_bitcode_file;
 
@@ -24,7 +23,7 @@ pub(crate) struct QCSCompilerContext<'ctx> {
     pub(crate) builder: inkwell::builder::Builder<'ctx>,
     pub(crate) types: Types<'ctx>,
     pub(crate) values: Values<'ctx>,
-    pub(crate) target: ExecutionTarget
+    pub(crate) target: ExecutionTarget,
 }
 
 impl<'ctx> QCSCompilerContext<'ctx> {
@@ -32,7 +31,7 @@ impl<'ctx> QCSCompilerContext<'ctx> {
         context: &'ctx inkwell::context::Context,
         name: &'ctx str,
         file_path: &str,
-        target: ExecutionTarget
+        target: ExecutionTarget,
     ) -> Self {
         let builder = context.create_builder();
         let module = load_module_from_bitcode_file(context, name, file_path);
@@ -45,7 +44,7 @@ impl<'ctx> QCSCompilerContext<'ctx> {
             module,
             types,
             values,
-            target
+            target,
         }
     }
 }
