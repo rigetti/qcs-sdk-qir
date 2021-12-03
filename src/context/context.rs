@@ -1,4 +1,3 @@
-use super::{types::Types, values::Values};
 /**
  * Copyright 2021 Rigetti Computing
  *
@@ -14,6 +13,9 @@ use super::{types::Types, values::Values};
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  **/
+
+use super::{types::Types, values::Values, target::ExecutionTarget};
+
 use crate::interop::load::load_module_from_bitcode_file;
 
 pub(crate) struct QCSCompilerContext<'ctx> {
@@ -22,6 +24,7 @@ pub(crate) struct QCSCompilerContext<'ctx> {
     pub(crate) builder: inkwell::builder::Builder<'ctx>,
     pub(crate) types: Types<'ctx>,
     pub(crate) values: Values<'ctx>,
+    pub(crate) target: ExecutionTarget
 }
 
 impl<'ctx> QCSCompilerContext<'ctx> {
@@ -29,11 +32,12 @@ impl<'ctx> QCSCompilerContext<'ctx> {
         context: &'ctx inkwell::context::Context,
         name: &'ctx str,
         file_path: &str,
+        target: ExecutionTarget
     ) -> Self {
         let builder = context.create_builder();
         let module = load_module_from_bitcode_file(context, name, file_path);
         let types = Types::new(context);
-        let values = Values::new(context, &builder, &module, &types);
+        let values = Values::new(context, &builder, &module, &types, &target);
 
         Self {
             base_context: context,
@@ -41,6 +45,7 @@ impl<'ctx> QCSCompilerContext<'ctx> {
             module,
             types,
             values,
+            target
         }
     }
 }

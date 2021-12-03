@@ -17,6 +17,7 @@ use std::path::PathBuf;
 
 use crate::context::QCSCompilerContext;
 use crate::transform::shot_count_block::transpile_module;
+use context::target::ExecutionTarget;
 use structopt::StructOpt;
 
 mod context;
@@ -38,6 +39,9 @@ enum QCSQIRCLI {
 
         #[structopt(long)]
         add_main_entrypoint: bool,
+
+        #[structopt(name = "target", long, default_value = "qvm")]
+        execution_target: ExecutionTarget
     },
 }
 
@@ -50,6 +54,7 @@ fn main() -> Result<(), ()> {
             add_main_entrypoint,
             llvm_bitcode_path,
             bitcode_out,
+            execution_target,
         } => {
             let base_context = inkwell::context::Context::create();
             let mut context = QCSCompilerContext::new_from_file(
@@ -58,7 +63,9 @@ fn main() -> Result<(), ()> {
                 llvm_bitcode_path
                     .to_str()
                     .expect("provided LLVM bitcode path is not valid"),
+                    execution_target
             );
+
             transpile_module(&mut context);
 
             if add_main_entrypoint {

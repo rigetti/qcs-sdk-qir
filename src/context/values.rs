@@ -25,7 +25,7 @@ use inkwell::{
 use crate::interop::entrypoint::get_entry_function;
 use crate::transform::shot_count_block::PARAMETER_MEMORY_REGION_NAME;
 
-use super::types::Types;
+use super::{target::ExecutionTarget, types::Types};
 
 fn build_executable_from_quil_function<'ctx>(
     _context: &'ctx Context,
@@ -68,6 +68,28 @@ fn build_execute_on_qpu_function<'ctx>(
     module.add_function(
         "execute_on_qpu",
         execute_on_qpu_type,
+        Some(Linkage::External),
+    )
+}
+
+fn build_execute_on_qvm_function<'ctx>(
+    _context: &'ctx Context,
+    _builder: &Builder<'ctx>,
+    module: &Module<'ctx>,
+    types: &Types<'ctx>,
+) -> FunctionValue<'ctx> {
+    let executable_type = types.executable();
+    let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
+
+    let execution_result_type = types.execution_result();
+    let execution_result_pointer_type = execution_result_type.ptr_type(AddressSpace::Generic);
+    let execute_on_qvm_type = execution_result_pointer_type.fn_type(
+        &[BasicMetadataTypeEnum::PointerType(executable_pointer_type)],
+        false,
+    );
+    module.add_function(
+        "execute_on_qvm",
+        execute_on_qvm_type,
         Some(Linkage::External),
     )
 }
@@ -164,13 +186,18 @@ fn build_quantum_processor_id<'ctx>(
     builder: &Builder<'ctx>,
     _module: &Module<'ctx>,
     types: &Types<'ctx>,
-) -> PointerValue<'ctx> {
-    let global_string = unsafe {
-        // NOTE: this segfaults if the builder is not already positioned within a basic block
-        // see https://github.com/TheDan64/inkwell/issues/32
-        builder.build_global_string("Aspen-10", "quantum_processor_id")
-    };
-    global_string.as_pointer_value().const_cast(types.string())
+    target: &ExecutionTarget,
+) -> Option<PointerValue<'ctx>> {
+    if let ExecutionTarget::QPU(quantum_processor_id) = target {
+        let global_string = unsafe {
+            // NOTE: this segfaults if the builder is not already positioned within a basic block
+            // see https://github.com/TheDan64/inkwell/issues/32
+            builder.build_global_string(quantum_processor_id, "quantum_processor_id")
+        };
+        Some(global_string.as_pointer_value().const_cast(types.string()))
+    } else {
+        None
+    }
 }
 
 fn build_wrap_in_shots_function<'ctx>(
@@ -194,13 +221,14 @@ fn build_wrap_in_shots_function<'ctx>(
     module.add_function("wrap_in_shots", wrap_in_shots_type, Some(Linkage::External))
 }
 
-pub struct Values<'ctx> {
+pub(crate) struct Values<'ctx> {
     executable_from_quil_function: FunctionValue<'ctx>,
     execute_on_qpu_function: FunctionValue<'ctx>,
+    execute_on_qvm_function: FunctionValue<'ctx>,
     get_readout_bit_function: FunctionValue<'ctx>,
     panic_on_failure_function: FunctionValue<'ctx>,
     parameter_memory_region_name: PointerValue<'ctx>,
-    quantum_processor_id: PointerValue<'ctx>,
+    quantum_processor_id: Option<PointerValue<'ctx>>,
     set_param_function: FunctionValue<'ctx>,
     wrap_in_shots_function: FunctionValue<'ctx>,
 }
@@ -216,6 +244,11 @@ impl<'ctx> Values<'ctx> {
         self.execute_on_qpu_function
     }
 
+    /// Get a reference to the values's execute on qvm function.
+    pub fn execute_on_qvm_function(&self) -> FunctionValue<'ctx> {
+        self.execute_on_qvm_function
+    }
+
     /// Get a reference to the values's get readout bit function.
     pub fn get_readout_bit_function(&self) -> FunctionValue<'ctx> {
         self.get_readout_bit_function
@@ -226,6 +259,7 @@ impl<'ctx> Values<'ctx> {
         builder: &Builder<'ctx>,
         module: &Module<'ctx>,
         types: &Types<'ctx>,
+        target: &ExecutionTarget,
     ) -> Self {
         // To create global values, the builder must be positioned inside a basic block even if it never writes within that basic block.
         // see https://github.com/TheDan64/inkwell/issues/32
@@ -239,6 +273,7 @@ impl<'ctx> Values<'ctx> {
                 context, builder, module, types,
             ),
             execute_on_qpu_function: build_execute_on_qpu_function(context, builder, module, types),
+            execute_on_qvm_function: build_execute_on_qvm_function(context, builder, module, types),
             get_readout_bit_function: build_get_readout_bit_function(
                 context, builder, module, types,
             ),
@@ -248,7 +283,7 @@ impl<'ctx> Values<'ctx> {
             parameter_memory_region_name: build_parameter_memory_region_name(
                 context, builder, module, types,
             ),
-            quantum_processor_id: build_quantum_processor_id(context, builder, module, types),
+            quantum_processor_id: build_quantum_processor_id(context, builder, module, types, target),
             set_param_function: build_set_param_function(context, builder, module, types),
             wrap_in_shots_function: build_wrap_in_shots_function(context, builder, module, types),
         }
@@ -265,7 +300,7 @@ impl<'ctx> Values<'ctx> {
     }
 
     /// Get a reference to the values's quantum processor id.
-    pub fn quantum_processor_id(&self) -> PointerValue<'ctx> {
+    pub fn quantum_processor_id(&self) -> Option<PointerValue<'ctx>> {
         self.quantum_processor_id
     }
 
