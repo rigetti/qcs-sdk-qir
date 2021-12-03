@@ -113,7 +113,7 @@ entry:
 This crate has the following external dependencies:
 
 * [cargo-make](https://github.com/sagiegurari/cargo-make) as a task runner - install that with `cargo install cargo-make`.
-* LLVM 11 installed and available on your `PATH`. If you can't run `llvm-config`, then you will be unable to build this crate. 
+* A supported LLVM version installed and available on your `PATH`. If you can't run `llvm-config`, then you will be unable to build this crate. The supported versions are listed in `Cargo.toml` under `[features]`.
 * A C compiler, such as `gcc` or `clang`, which supports LLVM 11 at a minimum. For OSX users, this means XCode version >= 12.5.
 * The QCS SDK shared library, which may be built or downloaded as described [here](https://github.com/rigetti/qcs-sdk-c). (**IMPORTANT**: while in development, use the `7-execution-result-pointer` branch).
 
@@ -142,16 +142,16 @@ Build the CLI using `cargo build --bin`.
 
 ## Transform QIR
 
-To transpile an input QIR program, run the CLI:
+To transpile an input QIR program, run the CLI. Note that you **must specify your LLVM version corresponding with your installed version or this will fail with dozens of errors**:
 
 ```
-cargo run transform path/to/input.bc path/to/output.bc --add-main-entrypoint
+cargo run --features llvm11-0 transform path/to/input.bc path/to/output.bc --add-main-entrypoint
 ```
 
-Use the `--help` flag to view all options:
+Use the `--help` flag to view all options, such as whether to target the QVM or a QPU:
 
 ```
-cargo run transform --help
+cargo run --features llvm11-0 transform --help
 ```
 
 ## Run Your Transformed QIR
@@ -199,7 +199,7 @@ error: No suitable version of LLVM was found system-wide or pointed
 
 ```
 
-First, make sure you do in fact have LLVM 11 installed and on your `PATH`. Run `llvm-config --version` to confirm. If not, that needs fixing first.
+First, make sure you do in fact have the same LLVM version installed and on your `PATH` as you've specified with the `--features` option in `cargo`. Run `llvm-config --version` to confirm. If not, that needs fixing first.
 
 If you do, perhaps you first tried to build the crate before LLVM was installed and configured. Run `cargo clean -p llvm-sys` to clear the build and then retry.
 
