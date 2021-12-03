@@ -40,7 +40,12 @@ enum QCSQIRCLI {
         #[structopt(long)]
         add_main_entrypoint: bool,
 
-        #[structopt(name = "target", long, default_value = "qvm")]
+        #[structopt(
+            name = "target",
+            long,
+            default_value = "qvm",
+            help = "QPU ID to target for execution, or \"qvm\" to target a generic device on the Quil QVM"
+        )]
         execution_target: ExecutionTarget,
     },
 }
