@@ -77,9 +77,6 @@ pub(crate) struct ShotCountPatternMatchContext<'ctx> {
     /// Pairings of (readout buffer index/offset) with the instruction which stores that readout value.
     pub readout_instruction_mapping: Vec<(u64, InstructionValue<'ctx>)>,
 
-    /// How long the quil program's `ro` register must be to accommodate all readout indices.
-    pub readout_register_length: u64,
-
     // All FloatValues used as instruction parameters. Indices within this Vec map to indices within the Quil
     // MemoryRegion used to read the values at runtime.
     pub parameters: Vec<FloatValue<'ctx>>,

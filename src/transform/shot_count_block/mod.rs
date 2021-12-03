@@ -145,7 +145,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
                 name: String::from("ro"),
                 size: Vector {
                     data_type: quil_rs::instruction::ScalarType::Bit,
-                    length: pattern_context.readout_register_length,
+                    length: pattern_context.read_result_mapping.len() as u64,
                 },
                 sharing: None,
             },
@@ -208,10 +208,10 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
         let execution_result = match &context.target {
             crate::context::target::ExecutionTarget::QPU(_) => {
                 call::execute_on_qpu(context, executable)
-            },
+            }
             crate::context::target::ExecutionTarget::QVM => {
                 call::execute_on_qvm(context, executable)
-            },
+            }
         };
 
         call::panic_on_execution_result_failure(context, &execution_result);
