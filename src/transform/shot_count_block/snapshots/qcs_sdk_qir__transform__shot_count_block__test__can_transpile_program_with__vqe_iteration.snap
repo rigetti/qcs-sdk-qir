@@ -12,7 +12,7 @@ source_filename = "./test/fixtures/programs/vqe_iteration.ll"
 %ExecutionResult = type opaque
 
 @parameter_memory_region_name = private unnamed_addr constant [12 x i8] c"__qir_param\00", align 1
-@quil_program = private unnamed_addr constant [132 x i8] c"DECLARE ro BIT[1]\0ACNOT 1 0\0ACNOT 1 0\0AH 0\0AH 1\0AS 1\0AH 1\0ACNOT 1 0\0ACNOT 1 0\0AH 1\0ADAGGER S 1\0AH 1\0AH 0\0AH 2\0ACZ 2 0\0ACZ 2 1\0AH 2\0AMEASURE 2 ro[0]\0A\00", align 1
+@quil_program = private unnamed_addr constant [138 x i8] c"DECLARE ro BIT[1]\0ARESET\0ACNOT 1 0\0ACNOT 1 0\0AH 0\0AH 1\0AS 1\0AH 1\0ACNOT 1 0\0ACNOT 1 0\0AH 1\0ADAGGER S 1\0AH 1\0AH 0\0AH 2\0ACZ 2 0\0ACZ 2 1\0AH 2\0AMEASURE 2 ro[0]\0A\00", align 1
 
 declare void @__quantum__qis__reset__body(%Qubit*) local_unnamed_addr
 
@@ -55,7 +55,7 @@ body_cleanup:                                     ; preds = %body
   br label %exit
 
 body_execution:                                   ; preds = %entry, <null operand!>
-  %6 = call %Executable* @executable_from_quil(i8* getelementptr inbounds ([132 x i8], [132 x i8]* @quil_program, i32 0, i32 0))
+  %6 = call %Executable* @executable_from_quil(i8* getelementptr inbounds ([138 x i8], [138 x i8]* @quil_program, i32 0, i32 0))
   call void @wrap_in_shots(%Executable* %6, i32 1000)
   %7 = call %ExecutionResult* @execute_on_qvm(%Executable* %6)
   call void @panic_on_failure(%ExecutionResult* %7)

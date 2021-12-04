@@ -167,16 +167,15 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
 
         if pattern_context.use_active_reset {
             // Prepend a reset to the program via copy
-            // TODO: uncomment once quil-rs has RESET support
-            // let instructions = program.to_instructions(true);
-            // let mut new_program = Program::new();
-            // new_program.add_instruction(quil_rs::instruction::Instruction::Reset(
-            //     quil_rs::instruction::Reset { qubit: None },
-            // ));
-            // for instruction in instructions {
-            //     new_program.add_instruction(instruction);
-            // }
-            // program = new_program;
+            let instructions = program.to_instructions(true);
+            let mut new_program = quil_rs::program::Program::new();
+            new_program.add_instruction(quil_rs::instruction::Instruction::Reset(
+                quil_rs::instruction::Reset { qubit: None },
+            ));
+            for instruction in instructions {
+                new_program.add_instruction(instruction);
+            }
+            program = new_program;
         }
 
         // We write all the new instructions to a new basic block
