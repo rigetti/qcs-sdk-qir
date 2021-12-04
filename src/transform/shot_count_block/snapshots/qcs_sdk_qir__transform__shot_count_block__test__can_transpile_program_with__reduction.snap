@@ -12,14 +12,13 @@ source_filename = "./test/fixtures/programs/reduction.ll"
 %ExecutionResult = type opaque
 
 @parameter_memory_region_name = private unnamed_addr constant [12 x i8] c"__qir_param\00", align 1
-@quantum_processor_id = private unnamed_addr constant [9 x i8] c"Aspen-10\00", align 1
-@quil_program = private unnamed_addr constant [40 x i8] c"DECLARE ro BIT[0]\0AH 12\0AMEASURE 2 ro[0]\0A\00", align 1
+@quil_program = private unnamed_addr constant [40 x i8] c"DECLARE ro BIT[1]\0AH 12\0AMEASURE 2 ro[0]\0A\00", align 1
 
 declare void @__quantum__qis__h__body(%Qubit*) local_unnamed_addr
 
 declare void @__quantum__qis__mz__body(%Qubit*, %Result*) local_unnamed_addr
 
-declare i1 @__quantum__qir__read_result(%Result*) local_unnamed_addr
+declare i1 @__quantum__qis__read_result__body(%Result*) local_unnamed_addr
 
 define internal fastcc void @QuantumApplication__Run__body() unnamed_addr {
 entry:
@@ -33,22 +32,33 @@ body:                                             ; preds = %body, %body_executi
   %select = add i64 %0, %3
   %4 = add nuw nsw i64 %1, 1
   %5 = icmp ult i64 %1, 42
-  br i1 %5, label %body, label %exit
+  br i1 %5, label %body, label %body_cleanup
+
+body_cleanup:                                     ; preds = %body
+  call void @free_executable(%Executable* %6)
+  call void @free_execution_result(%ExecutionResult* %7)
+  br label %exit
 
 body_execution:                                   ; preds = %entry, <null operand!>
   %6 = call %Executable* @executable_from_quil(i8* getelementptr inbounds ([40 x i8], [40 x i8]* @quil_program, i32 0, i32 0))
   call void @wrap_in_shots(%Executable* %6, i32 42)
-  %7 = call %ExecutionResult* @execute_on_qpu(%Executable* %6, i8* getelementptr inbounds ([9 x i8], [9 x i8]* @quantum_processor_id, i32 0, i32 0))
+  %7 = call %ExecutionResult* @execute_on_qvm(%Executable* %6)
   call void @panic_on_failure(%ExecutionResult* %7)
   br label %body
 
-exit:                                             ; preds = %body, <null operand!>
+exit:                                             ; preds = %body_cleanup, <null operand!>
   ret void
 }
 
 declare %Executable* @executable_from_quil(i8*)
 
 declare %ExecutionResult* @execute_on_qpu(%Executable*, i8*)
+
+declare %ExecutionResult* @execute_on_qvm(%Executable*)
+
+declare void @free_executable(%Executable*)
+
+declare void @free_execution_result(%ExecutionResult*)
 
 declare i1 @get_readout_bit(%ExecutionResult*, i64, i64)
 

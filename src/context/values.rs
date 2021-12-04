@@ -94,6 +94,47 @@ fn build_execute_on_qvm_function<'ctx>(
     )
 }
 
+fn build_free_executable_function<'ctx>(
+    context: &'ctx Context,
+    _builder: &Builder<'ctx>,
+    module: &Module<'ctx>,
+    types: &Types<'ctx>,
+) -> FunctionValue<'ctx> {
+    let executable_type = types.executable();
+    let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
+
+    let free_executable_type = context.void_type().fn_type(
+        &[BasicMetadataTypeEnum::PointerType(executable_pointer_type)],
+        false,
+    );
+    module.add_function(
+        "free_executable",
+        free_executable_type,
+        Some(Linkage::External),
+    )
+}
+
+fn build_free_execution_result_function<'ctx>(
+    context: &'ctx Context,
+    _builder: &Builder<'ctx>,
+    module: &Module<'ctx>,
+    types: &Types<'ctx>,
+) -> FunctionValue<'ctx> {
+    let execution_result_type = types.execution_result();
+    let execution_result_pointer_type = execution_result_type.ptr_type(AddressSpace::Generic);
+    let free_execution_result_type = context.void_type().fn_type(
+        &[BasicMetadataTypeEnum::PointerType(
+            execution_result_pointer_type,
+        )],
+        false,
+    );
+    module.add_function(
+        "free_execution_result",
+        free_execution_result_type,
+        Some(Linkage::External),
+    )
+}
+
 fn build_get_readout_bit_function<'ctx>(
     context: &'ctx Context,
     _builder: &Builder<'ctx>,
@@ -222,6 +263,8 @@ fn build_wrap_in_shots_function<'ctx>(
 }
 
 pub(crate) struct Values<'ctx> {
+    free_executable_function: FunctionValue<'ctx>,
+    free_execution_result_function: FunctionValue<'ctx>,
     executable_from_quil_function: FunctionValue<'ctx>,
     execute_on_qpu_function: FunctionValue<'ctx>,
     execute_on_qvm_function: FunctionValue<'ctx>,
@@ -274,6 +317,12 @@ impl<'ctx> Values<'ctx> {
             ),
             execute_on_qpu_function: build_execute_on_qpu_function(context, builder, module, types),
             execute_on_qvm_function: build_execute_on_qvm_function(context, builder, module, types),
+            free_executable_function: build_free_executable_function(
+                context, builder, module, types,
+            ),
+            free_execution_result_function: build_free_execution_result_function(
+                context, builder, module, types,
+            ),
             get_readout_bit_function: build_get_readout_bit_function(
                 context, builder, module, types,
             ),
@@ -314,5 +363,15 @@ impl<'ctx> Values<'ctx> {
     /// Get a reference to the values's wrap in shots function.
     pub fn wrap_in_shots_function(&self) -> FunctionValue<'ctx> {
         self.wrap_in_shots_function
+    }
+
+    /// Get a reference to the values's free executable function.
+    pub(crate) fn free_executable_function(&self) -> FunctionValue<'ctx> {
+        self.free_executable_function
+    }
+
+    /// Get a reference to the values's free execution result function.
+    pub(crate) fn free_execution_result_function(&self) -> FunctionValue<'ctx> {
+        self.free_execution_result_function
     }
 }

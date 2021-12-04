@@ -66,7 +66,7 @@ pub struct ExecutionResult<'ctx>(PointerValue<'ctx>);
 
 pub(crate) fn execute_on_qpu<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
-    executable: Executable<'ctx>,
+    executable: &Executable<'ctx>,
 ) -> ExecutionResult<'ctx> {
     let execution_result = context.builder.build_call(
         context.values.execute_on_qpu_function(),
@@ -91,7 +91,7 @@ pub(crate) fn execute_on_qpu<'ctx>(
 
 pub(crate) fn execute_on_qvm<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
-    executable: Executable<'ctx>,
+    executable: &Executable<'ctx>,
 ) -> ExecutionResult<'ctx> {
     let execution_result = context.builder.build_call(
         context.values.execute_on_qvm_function(),
@@ -105,6 +105,28 @@ pub(crate) fn execute_on_qvm<'ctx>(
             .unwrap_left()
             .into_pointer_value(),
     )
+}
+
+pub(crate) fn free_executable<'ctx>(
+    context: &mut QCSCompilerContext<'ctx>,
+    executable: &Executable<'ctx>,
+) {
+    context.builder.build_call(
+        context.values.free_executable_function(),
+        &[executable.0.into()],
+        "",
+    );
+}
+
+pub(crate) fn free_execution_result<'ctx>(
+    context: &mut QCSCompilerContext<'ctx>,
+    execution_result: &ExecutionResult<'ctx>,
+) {
+    context.builder.build_call(
+        context.values.free_execution_result_function(),
+        &[execution_result.0.into()],
+        "",
+    );
 }
 
 /// Insert a call which accepts as its only argument an ExecutionResult, and panics and exits if that

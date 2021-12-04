@@ -137,6 +137,16 @@ pub(crate) fn integer_value_to_u64(_context: &QCSCompilerContext, value: &IntVal
         .and_then(|value| u64::try_from(value).ok())
 }
 
+pub(crate) fn get_conditional_branch_else_target<'ctx>(
+    instruction: &InstructionValue<'ctx>,
+) -> Option<BasicBlock<'ctx>> {
+    if let Some(Either::Right(target)) = instruction.get_operand(1) {
+        Some(target)
+    } else {
+        None
+    }
+}
+
 /// Given a conditional branch (`br`) instruction, replace its then and/or else targets with the specified basic blocks.
 ///
 /// Note: this function moves the builder's position and does not restore it.

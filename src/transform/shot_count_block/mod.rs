@@ -27,7 +27,8 @@ use log::{debug, info};
 use quil_rs::instruction::Vector;
 
 use crate::interop::instruction::{
-    remove_instructions_in_safe_order, replace_conditional_branch_target, replace_phi_clauses,
+    get_conditional_branch_else_target, remove_instructions_in_safe_order,
+    replace_conditional_branch_target, replace_phi_clauses,
 };
 
 use crate::{context::QCSCompilerContext, interop::call, interop::entrypoint::get_entry_function};
@@ -207,10 +208,10 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
 
         let execution_result = match &context.target {
             crate::context::target::ExecutionTarget::QPU(_) => {
-                call::execute_on_qpu(context, executable)
+                call::execute_on_qpu(context, &executable)
             }
             crate::context::target::ExecutionTarget::QVM => {
-                call::execute_on_qvm(context, executable)
+                call::execute_on_qvm(context, &executable)
             }
         };
 
@@ -243,11 +244,28 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
             instruction.replace_all_uses_with(&new_instruction.as_instruction().unwrap());
         }
 
+        let cleanup_basic_block = context.base_context.insert_basic_block_after(
+            basic_block,
+            format!("{}_cleanup", basic_block.get_name().to_str().unwrap()).as_str(),
+        );
+
+        // Record which block was originally the target following execution & processing of shots in this block
+        let original_next_block =
+            get_conditional_branch_else_target(&basic_block.get_terminator().unwrap())
+                .expect("expected the basic block to have a conditional 'else' target");
+
+        context.builder.position_at_end(cleanup_basic_block);
+        call::free_executable(context, &executable);
+        call::free_execution_result(context, &execution_result);
+        context
+            .builder
+            .build_unconditional_branch(original_next_block); // TODO: change to the else target of the basic block
+
         replace_conditional_branch_target(
             context,
             &basic_block.get_terminator().unwrap(),
             Some(&basic_block),
-            None,
+            Some(&cleanup_basic_block),
         );
 
         replace_phi_clauses(
@@ -282,6 +300,7 @@ mod test {
 
     mod can_transpile_program_with {
         use super::*;
+        use crate::context::target::ExecutionTarget;
         use crate::context::QCSCompilerContext;
 
         macro_rules! make_snapshot_test {
@@ -295,6 +314,7 @@ mod test {
                         &base_context,
                         "qcs",
                         format!("test/fixtures/programs/{}.bc", stringify!($name)).as_str(),
+                        ExecutionTarget::QVM,
                     );
                     transpile_module(&mut context);
 
