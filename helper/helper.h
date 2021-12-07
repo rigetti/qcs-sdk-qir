@@ -1,6 +1,55 @@
 #include <stdio.h>
 #include "libqcs.h"
 
+typedef struct ExecutableCache
+{
+   int length;
+   Executable **executables;
+} ExecutableCache;
+
+ExecutableCache *create_executable_cache(int length)
+{
+   Executable **executables = (Executable **)calloc(length, sizeof(struct Executable *));
+   ExecutableCache *cache = (ExecutableCache *)malloc(sizeof(struct ExecutableCache *));
+   cache->length = length;
+   cache->executables = executables;
+   return cache;
+}
+
+void add_executable_cache_item(ExecutableCache *cache, int index, char *program)
+{
+   cache->executables[index] = executable_from_quil(program);
+}
+
+Executable *read_from_executable_cache(ExecutableCache *cache, int index)
+{
+   if (index >= cache->length)
+   {
+      printf("cache only holds %d executables but tried to read from index %d", cache->length, index);
+      exit(1);
+   }
+
+   Executable *executable = cache->executables[index];
+
+   if (executable == NULL)
+   {
+      printf("read executable from cache at index %d but it was null", index);
+      exit(1);
+   }
+
+   return executable;
+}
+
+void free_executable_cache(ExecutableCache *cache)
+{
+   for (int i = 0; i < cache->length; i++)
+   {
+      free_executable(cache->executables[i]);
+   }
+
+   free(cache);
+}
+
 // Given an execution result, test it for an error code. If present, print the error message and exit.
 void panic_on_failure(ExecutionResult *result)
 {
@@ -12,16 +61,6 @@ void panic_on_failure(ExecutionResult *result)
    else
    {
       printf("execution successful\n");
-      // const ExecutionData *ro = get_data(result->handle, "ro");
-      // for (int shot = 0; shot < ro->number_of_shots; shot++)
-      // {
-
-      //    for (int qubit_index = 0; qubit_index < ro->shot_length; qubit_index++)
-      //    {
-      //       printf("%d", ro->data.byte[shot][qubit_index]);
-      //    }
-      //    printf(">\n");
-      // }
    }
 }
 
