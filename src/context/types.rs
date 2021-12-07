@@ -26,27 +26,34 @@ fn build_string_type<'ctx>(context: &'ctx Context) -> PointerType<'ctx> {
 pub struct Types<'ctx> {
     string: PointerType<'ctx>,
     executable: StructType<'ctx>,
+    executable_cache: StructType<'ctx>,
     execution_result: StructType<'ctx>,
 }
 
 impl<'ctx> Types<'ctx> {
-    pub fn new(context: &'ctx Context) -> Self {
-        let execution_result = context.opaque_struct_type("ExecutionResult");
-        let executable = context.opaque_struct_type("Executable");
-
-        Self {
-            string: build_string_type(context),
-            executable,
-            execution_result,
-        }
-    }
-
     pub fn executable(&self) -> StructType<'ctx> {
         self.executable
     }
 
+    pub fn executable_cache(&self) -> StructType<'ctx> {
+        self.executable_cache
+    }
+
     pub fn execution_result(&self) -> StructType<'ctx> {
         self.execution_result
+    }
+
+    pub fn new(context: &'ctx Context) -> Self {
+        let execution_result = context.opaque_struct_type("ExecutionResult");
+        let executable = context.opaque_struct_type("Executable");
+        let executable_cache = context.opaque_struct_type("ExecutableCache");
+
+        Self {
+            string: build_string_type(context),
+            executable,
+            executable_cache,
+            execution_result,
+        }
     }
 
     pub fn string(&self) -> PointerType<'ctx> {

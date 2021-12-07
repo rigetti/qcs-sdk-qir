@@ -40,8 +40,9 @@ pub(crate) fn printf<'ctx>(context: &mut QCSCompilerContext<'ctx>, string: Point
     );
 }
 
-pub(crate) struct Executable<'ctx>(PointerValue<'ctx>);
+pub(crate) struct Executable<'ctx>(pub PointerValue<'ctx>);
 
+#[allow(dead_code)]
 pub(crate) fn executable_from_quil<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     quil: PointerValue<'ctx>,
@@ -107,6 +108,7 @@ pub(crate) fn execute_on_qvm<'ctx>(
     )
 }
 
+#[allow(dead_code)]
 pub(crate) fn free_executable<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     executable: &Executable<'ctx>,
@@ -127,6 +129,30 @@ pub(crate) fn free_execution_result<'ctx>(
         &[execution_result.0.into()],
         "",
     );
+}
+
+/// Insert a call which retrieves the executable stored at a given index in the cache.
+pub(crate) fn get_executable<'ctx>(
+    context: &mut QCSCompilerContext<'ctx>,
+    index: IntValue<'ctx>,
+) -> Executable<'ctx> {
+    let cache_pointer = context
+        .builder
+        .build_load(context.values.executable_cache().as_pointer_value(), "");
+
+    let call_site_value = context.builder.build_call(
+        context.values.read_from_executable_cache(),
+        &[cache_pointer.into(), index.into()],
+        "",
+    );
+
+    Executable(
+        call_site_value
+            .try_as_basic_value()
+            .left()
+            .expect("function does not return a value")
+            .into_pointer_value(),
+    )
 }
 
 /// Insert a call which accepts as its only argument an ExecutionResult, and panics and exits if that

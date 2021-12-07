@@ -18,7 +18,7 @@ use inkwell::{
     context::Context,
     module::{Linkage, Module},
     types::BasicMetadataTypeEnum,
-    values::{FunctionValue, PointerValue},
+    values::{FunctionValue, GlobalValue, PointerValue},
     AddressSpace,
 };
 
@@ -132,6 +132,86 @@ fn build_free_execution_result_function<'ctx>(
         "free_execution_result",
         free_execution_result_type,
         Some(Linkage::External),
+    )
+}
+
+fn build_create_executable_cache_function<'ctx>(
+    context: &'ctx Context,
+    _builder: &Builder<'ctx>,
+    module: &Module<'ctx>,
+    types: &Types<'ctx>,
+) -> FunctionValue<'ctx> {
+    module.add_function(
+        "create_executable_cache",
+        types
+            .executable_cache()
+            .ptr_type(AddressSpace::Generic)
+            .fn_type(&[context.i32_type().into()], false),
+        None,
+    )
+}
+
+fn build_add_executable_cache_item_function<'ctx>(
+    context: &'ctx Context,
+    _builder: &Builder<'ctx>,
+    module: &Module<'ctx>,
+    types: &Types<'ctx>,
+) -> FunctionValue<'ctx> {
+    module.add_function(
+        "add_executable_cache_item",
+        context.void_type().fn_type(
+            &[
+                types
+                    .executable_cache()
+                    .ptr_type(AddressSpace::Generic)
+                    .into(),
+                context.i32_type().into(),
+                types.string().into(),
+            ],
+            false,
+        ),
+        None,
+    )
+}
+
+fn build_read_from_executable_cache_function<'ctx>(
+    context: &'ctx Context,
+    _builder: &Builder<'ctx>,
+    module: &Module<'ctx>,
+    types: &Types<'ctx>,
+) -> FunctionValue<'ctx> {
+    module.add_function(
+        "read_from_executable_cache",
+        types.executable().ptr_type(AddressSpace::Generic).fn_type(
+            &[
+                types
+                    .executable_cache()
+                    .ptr_type(AddressSpace::Generic)
+                    .into(),
+                context.i32_type().into(),
+            ],
+            false,
+        ),
+        None,
+    )
+}
+
+fn build_free_executable_cache_function<'ctx>(
+    context: &'ctx Context,
+    _builder: &Builder<'ctx>,
+    module: &Module<'ctx>,
+    types: &Types<'ctx>,
+) -> FunctionValue<'ctx> {
+    module.add_function(
+        "free_executable_cache",
+        context.void_type().fn_type(
+            &[types
+                .executable_cache()
+                .ptr_type(AddressSpace::Generic)
+                .into()],
+            false,
+        ),
+        None,
     )
 }
 
@@ -274,10 +354,17 @@ pub(crate) struct Values<'ctx> {
     quantum_processor_id: Option<PointerValue<'ctx>>,
     set_param_function: FunctionValue<'ctx>,
     wrap_in_shots_function: FunctionValue<'ctx>,
+
+    executable_cache: GlobalValue<'ctx>,
+    create_executable_cache: FunctionValue<'ctx>,
+    add_executable_cache_item: FunctionValue<'ctx>,
+    read_from_executable_cache: FunctionValue<'ctx>,
+    free_executable_cache: FunctionValue<'ctx>,
 }
 
 impl<'ctx> Values<'ctx> {
     /// Get a reference to the values's executable from quil function.
+    #[allow(dead_code)]
     pub fn executable_from_quil_function(&self) -> FunctionValue<'ctx> {
         self.executable_from_quil_function
     }
@@ -311,6 +398,20 @@ impl<'ctx> Values<'ctx> {
             .get_first_basic_block()
             .unwrap();
         builder.position_at_end(basic_block);
+
+        let executable_cache = module.add_global(
+            types.executable_cache().ptr_type(AddressSpace::Generic),
+            None,
+            "executable_cache",
+        );
+        executable_cache.set_linkage(Linkage::Private);
+        executable_cache.set_externally_initialized(false);
+        let initializer = types
+            .executable_cache()
+            .ptr_type(AddressSpace::Generic)
+            .const_zero();
+        executable_cache.set_initializer(&initializer);
+
         Self {
             executable_from_quil_function: build_executable_from_quil_function(
                 context, builder, module, types,
@@ -337,6 +438,20 @@ impl<'ctx> Values<'ctx> {
             ),
             set_param_function: build_set_param_function(context, builder, module, types),
             wrap_in_shots_function: build_wrap_in_shots_function(context, builder, module, types),
+
+            executable_cache,
+            create_executable_cache: build_create_executable_cache_function(
+                context, builder, module, types,
+            ),
+            add_executable_cache_item: build_add_executable_cache_item_function(
+                context, builder, module, types,
+            ),
+            read_from_executable_cache: build_read_from_executable_cache_function(
+                context, builder, module, types,
+            ),
+            free_executable_cache: build_free_executable_cache_function(
+                context, builder, module, types,
+            ),
         }
     }
 
@@ -366,6 +481,7 @@ impl<'ctx> Values<'ctx> {
     }
 
     /// Get a reference to the values's free executable function.
+    #[allow(dead_code)]
     pub(crate) fn free_executable_function(&self) -> FunctionValue<'ctx> {
         self.free_executable_function
     }
@@ -373,5 +489,31 @@ impl<'ctx> Values<'ctx> {
     /// Get a reference to the values's free execution result function.
     pub(crate) fn free_execution_result_function(&self) -> FunctionValue<'ctx> {
         self.free_execution_result_function
+    }
+
+    /// Get a reference to the values's create executable cache.
+    pub(crate) fn create_executable_cache(&self) -> FunctionValue<'ctx> {
+        self.create_executable_cache
+    }
+
+    /// Get a reference to the values's add executable cache item.
+    pub(crate) fn add_executable_cache_item(&self) -> FunctionValue<'ctx> {
+        self.add_executable_cache_item
+    }
+
+    /// Get a reference to the values's read from executable cache.
+    pub(crate) fn read_from_executable_cache(&self) -> FunctionValue<'ctx> {
+        self.read_from_executable_cache
+    }
+
+    /// Get a reference to the values's free executable cache.
+    #[allow(dead_code)]
+    pub(crate) fn free_executable_cache(&self) -> FunctionValue<'ctx> {
+        self.free_executable_cache
+    }
+
+    /// Get a reference to the values's executable cache.
+    pub(crate) fn executable_cache(&self) -> GlobalValue<'ctx> {
+        self.executable_cache
     }
 }

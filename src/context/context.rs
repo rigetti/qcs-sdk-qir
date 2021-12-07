@@ -24,6 +24,7 @@ pub(crate) struct QCSCompilerContext<'ctx> {
     pub(crate) types: Types<'ctx>,
     pub(crate) values: Values<'ctx>,
     pub(crate) target: ExecutionTarget,
+    pub(crate) quil_programs: Vec<quil_rs::program::Program>,
 }
 
 impl<'ctx> QCSCompilerContext<'ctx> {
@@ -45,6 +46,7 @@ impl<'ctx> QCSCompilerContext<'ctx> {
             types,
             values,
             target,
+            quil_programs: vec![],
         }
     }
 }

@@ -39,6 +39,88 @@ use pattern::{
 
 pub(crate) const PARAMETER_MEMORY_REGION_NAME: &'static str = "__qir_param";
 
+pub(crate) fn build_populate_executable_cache_function<'ctx>(
+    context: &mut QCSCompilerContext<'ctx>,
+) -> FunctionValue<'ctx> {
+    let populate_executable_array_function_type =
+        context.base_context.void_type().fn_type(&[], false);
+    let populate_executable_array_function = context.module.add_function(
+        "populate_executable_array",
+        populate_executable_array_function_type,
+        None,
+    );
+    let basic_block = context
+        .base_context
+        .append_basic_block(populate_executable_array_function, "entry");
+
+    context.builder.position_at_end(basic_block);
+
+    let actual_executable_cache = context
+        .builder
+        .build_call(
+            context.values.create_executable_cache(),
+            &[context
+                .base_context
+                .i32_type()
+                .const_int(context.quil_programs.len() as u64, false)
+                .into()],
+            "",
+        )
+        .try_as_basic_value()
+        .left()
+        .expect("create_executable_cache does not have a return value")
+        .into_pointer_value();
+
+    // println!(
+    //     "{:?} , {:?} , {:?}",
+    //     context.values.executable_cache().print_to_string(),
+    //     context
+    //         .values
+    //         .executable_cache()
+    //         .as_pointer_value()
+    //         .print_to_string(),
+    //     actual_executable_cache.print_to_string()
+    // );
+
+    context.builder.build_store(
+        context.values.executable_cache().as_pointer_value(),
+        actual_executable_cache,
+    );
+
+    for index in 0..context.quil_programs.len() {
+        let program_text = context.quil_programs[index].to_string(true);
+
+        let quil_program_global_string = unsafe {
+            // NOTE: this segfaults if the builder is not already positioned within a basic block
+            // see https://github.com/TheDan64/inkwell/issues/32
+            context
+                .builder
+                .build_global_string(&program_text, "quil_program")
+        };
+
+        context.builder.build_call(
+            context.values.add_executable_cache_item(),
+            &[
+                actual_executable_cache.into(),
+                context
+                    .base_context
+                    .i32_type()
+                    .const_int(index as u64, false)
+                    .into(),
+                quil_program_global_string
+                    .as_pointer_value()
+                    .const_cast(context.types.string())
+                    .into(),
+            ],
+            "",
+        );
+    }
+
+    context.builder.build_return(None);
+
+    populate_executable_array_function
+}
+
 /// Mutate a context such that all contiguous instructions which may be transpiled by `transpile_instruction`
 /// are inlined and executed using a shared library call.
 #[allow(dead_code)]
@@ -46,6 +128,16 @@ pub(crate) fn transpile_module(context: &mut QCSCompilerContext) {
     let entrypoint_function =
         get_entry_function(&context.module).expect("entrypoint not found in module");
     transpile_function(context, entrypoint_function, &vec![]);
+    let populate_function = build_populate_executable_cache_function(context);
+
+    let entry_basic_block = entrypoint_function.get_first_basic_block().unwrap();
+
+    match entry_basic_block.get_first_instruction() {
+        Some(instruction) => context.builder.position_before(&instruction),
+        None => context.builder.position_at_end(entry_basic_block),
+    };
+
+    context.builder.build_call(populate_function, &[], "");
 }
 
 pub(crate) fn transpile_function<'ctx>(
@@ -186,18 +278,16 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
         basic_block.replace_all_uses_with(&execution_basic_block);
         context.builder.position_at_end(execution_basic_block);
 
-        let program_text = program.to_string(true);
-        let quil_program_global_string = unsafe {
-            // NOTE: this segfaults if the builder is not already positioned within a basic block
-            // see https://github.com/TheDan64/inkwell/issues/32
-            context
-                .builder
-                .build_global_string(&program_text, "quil_program")
-        };
+        let quil_program_index = context.quil_programs.len();
+        context.quil_programs.push(program);
 
-        // Insert the shared library calls to send this program for execution
-        let executable =
-            call::executable_from_quil(context, quil_program_global_string.as_pointer_value());
+        let executable = call::get_executable(
+            context,
+            context
+                .base_context
+                .i32_type()
+                .const_int(quil_program_index as u64, false),
+        );
 
         call::wrap_in_shots(context, &executable, shots);
 
@@ -254,7 +344,6 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
                 .expect("expected the basic block to have a conditional 'else' target");
 
         context.builder.position_at_end(cleanup_basic_block);
-        call::free_executable(context, &executable);
         call::free_execution_result(context, &execution_result);
         context
             .builder
