@@ -86,9 +86,15 @@ pub(crate) struct ShotCountPatternMatchContext<'ctx> {
 }
 
 impl<'ctx> ShotCountPatternMatchContext<'ctx> {
+    /// If the program contains any executable instructions (gates, pulses, etc) and a shot count has been inferred,
+    /// return that information; otherwise, return `None` indicating that the pattern was not matched.
     pub fn get_program_data(&self) -> Option<(&quil_rs::Program, u64)> {
         if let Some(shots) = self.shot_count {
-            Some((&self.quil_program, shots))
+            if !self.quil_program.to_instructions(false).is_empty() {
+                Some((&self.quil_program, shots))
+            } else {
+                None
+            }
         } else {
             None
         }
