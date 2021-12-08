@@ -51,6 +51,9 @@ enum QCSQIRCLI {
 
         #[structopt(long)]
         cache_executables: bool,
+
+        #[structopt(long)]
+        quil_rewiring_pragma: Option<String>,
     },
 }
 
@@ -65,9 +68,13 @@ fn main() -> Result<(), ()> {
             bitcode_out,
             execution_target,
             cache_executables,
+            quil_rewiring_pragma,
         } => {
             let base_context = inkwell::context::Context::create();
-            let context_options = ContextOptions { cache_executables };
+            let context_options = ContextOptions {
+                cache_executables,
+                rewiring_pragma: quil_rewiring_pragma,
+            };
 
             let mut context = QCSCompilerContext::new_from_file(
                 &base_context,

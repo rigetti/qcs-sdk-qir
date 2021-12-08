@@ -270,6 +270,23 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
             program = new_program;
         }
 
+        if let Some(rewiring_pragma) = &context.options.rewiring_pragma {
+            // Prepend a pragma to the program via copy
+            let instructions = program.to_instructions(true);
+            let mut new_program = quil_rs::program::Program::new();
+            new_program.add_instruction(quil_rs::instruction::Instruction::Pragma(
+                quil_rs::instruction::Pragma {
+                    name: String::from("INITIAL_REWIRING"),
+                    arguments: vec![format!("\"{}\"", rewiring_pragma.clone())],
+                    data: None,
+                },
+            ));
+            for instruction in instructions {
+                new_program.add_instruction(instruction);
+            }
+            program = new_program;
+        }
+
         // We write all the new instructions to a new basic block
         let execution_basic_block = context.base_context.insert_basic_block_after(
             basic_block,
