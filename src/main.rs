@@ -17,6 +17,7 @@ use std::path::PathBuf;
 
 use crate::context::QCSCompilerContext;
 use crate::transform::shot_count_block::transpile_module;
+use context::context::ContextOptions;
 use context::target::ExecutionTarget;
 use structopt::StructOpt;
 
@@ -47,6 +48,9 @@ enum QCSQIRCLI {
             help = "QPU ID to target for execution, or \"qvm\" to target a generic device on the Quil QVM"
         )]
         execution_target: ExecutionTarget,
+
+        #[structopt(long)]
+        cache_executables: bool,
     },
 }
 
@@ -60,8 +64,11 @@ fn main() -> Result<(), ()> {
             llvm_bitcode_path,
             bitcode_out,
             execution_target,
+            cache_executables,
         } => {
             let base_context = inkwell::context::Context::create();
+            let context_options = ContextOptions { cache_executables };
+
             let mut context = QCSCompilerContext::new_from_file(
                 &base_context,
                 "qcs",
@@ -69,6 +76,7 @@ fn main() -> Result<(), ()> {
                     .to_str()
                     .expect("provided LLVM bitcode path is not valid"),
                 execution_target,
+                context_options,
             );
 
             transpile_module(&mut context);

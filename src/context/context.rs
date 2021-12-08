@@ -25,6 +25,7 @@ pub(crate) struct QCSCompilerContext<'ctx> {
     pub(crate) values: Values<'ctx>,
     pub(crate) target: ExecutionTarget,
     pub(crate) quil_programs: Vec<quil_rs::program::Program>,
+    pub(crate) options: ContextOptions,
 }
 
 impl<'ctx> QCSCompilerContext<'ctx> {
@@ -33,6 +34,7 @@ impl<'ctx> QCSCompilerContext<'ctx> {
         name: &'ctx str,
         file_path: &str,
         target: ExecutionTarget,
+        options: ContextOptions,
     ) -> Self {
         let builder = context.create_builder();
         let module = load_module_from_bitcode_file(context, name, file_path);
@@ -47,6 +49,11 @@ impl<'ctx> QCSCompilerContext<'ctx> {
             values,
             target,
             quil_programs: vec![],
+            options,
         }
     }
+}
+
+pub(crate) struct ContextOptions {
+    pub cache_executables: bool,
 }

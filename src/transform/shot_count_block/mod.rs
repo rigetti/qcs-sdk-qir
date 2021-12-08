@@ -278,16 +278,30 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
         basic_block.replace_all_uses_with(&execution_basic_block);
         context.builder.position_at_end(execution_basic_block);
 
-        let quil_program_index = context.quil_programs.len();
-        context.quil_programs.push(program);
+        let executable = if context.options.cache_executables {
+            let quil_program_index = context.quil_programs.len();
+            context.quil_programs.push(program);
 
-        let executable = call::get_executable(
-            context,
-            context
-                .base_context
-                .i32_type()
-                .const_int(quil_program_index as u64, false),
-        );
+            call::get_executable(
+                context,
+                context
+                    .base_context
+                    .i32_type()
+                    .const_int(quil_program_index as u64, false),
+            )
+        } else {
+            let program_text = program.to_string(true);
+            let quil_program_global_string = unsafe {
+                // NOTE: this segfaults if the builder is not already positioned within a basic block
+                // see https://github.com/TheDan64/inkwell/issues/32
+                context
+                    .builder
+                    .build_global_string(&program_text, "quil_program")
+            };
+
+            // Insert the shared library calls to send this program for execution
+            call::executable_from_quil(context, quil_program_global_string.as_pointer_value())
+        };
 
         call::wrap_in_shots(context, &executable, shots);
 
