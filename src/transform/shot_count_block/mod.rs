@@ -71,17 +71,6 @@ pub(crate) fn build_populate_executable_cache_function<'ctx>(
         .expect("create_executable_cache does not have a return value")
         .into_pointer_value();
 
-    // println!(
-    //     "{:?} , {:?} , {:?}",
-    //     context.values.executable_cache().print_to_string(),
-    //     context
-    //         .values
-    //         .executable_cache()
-    //         .as_pointer_value()
-    //         .print_to_string(),
-    //     actual_executable_cache.print_to_string()
-    // );
-
     context.builder.build_store(
         context.values.executable_cache().as_pointer_value(),
         actual_executable_cache,
@@ -378,7 +367,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
         call::free_execution_result(context, &execution_result);
         context
             .builder
-            .build_unconditional_branch(original_next_block); // TODO: change to the else target of the basic block
+            .build_unconditional_branch(original_next_block);
 
         replace_conditional_branch_target(
             context,
