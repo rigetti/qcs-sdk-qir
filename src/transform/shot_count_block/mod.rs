@@ -409,7 +409,7 @@ mod test {
     mod can_transpile_program_with {
         use super::*;
         use crate::context::target::ExecutionTarget;
-        use crate::context::QCSCompilerContext;
+        use crate::context::{ContextOptions, QCSCompilerContext};
 
         macro_rules! make_snapshot_test {
             ($name:ident) => {
@@ -423,6 +423,10 @@ mod test {
                         "qcs",
                         format!("test/fixtures/programs/{}.bc", stringify!($name)).as_str(),
                         ExecutionTarget::QVM,
+                        ContextOptions {
+                            cache_executables: false,
+                            rewiring_pragma: None
+                        }
                     );
                     transpile_module(&mut context);
 

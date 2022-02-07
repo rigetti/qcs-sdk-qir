@@ -19,3 +19,4 @@ pub(crate) mod types;
 pub(crate) mod values;
 
 pub(crate) use context::QCSCompilerContext;
+pub(crate) use context::ContextOptions;
