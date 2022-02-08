@@ -154,6 +154,22 @@ Use the `--help` flag to view all options, such as whether to target the QVM or 
 cargo run --features llvm11-0 transform --help
 ```
 
+### QIR Preconditions
+
+QIR may only be transpiled in this way if:
+
+- An entrypoint function exists (TBD)
+- Every function within the call tree from the entrypoint:
+  - Contains at least one basic block
+- All basic blocks within transpiled functions which contain at least one QIR intrinsic must satisfy the *basic block preconditions*:
+  - Begin with a `phi` instruction; the operand specifying the current block must reference a variable which we will call the _shot count variable_; the other operand must reference a constant value of 1. This initializes the shot count variable.
+  - At least one QIR intrinsic, and any number of classical instructions. The return value of any of these classical instructions may not be used as an operand to any QIR intrinsic invocation.
+  - A shot count termination sequence as the final three instructions of the block:
+    1. An increment: `add` of constant `1` to the _shot count variable_.
+    2. A comparison between the _shot count variable_ and a constant, which we will refer to as the _shot count_.
+    3. A conditional branch instruction, which targets the basic block if the comparison fails and a different block if it succeeds.
+- Basic blocks which do not match the pattern described here are passed through unchanged. If that leaves QIR intrinsics unaltered, then further compilation by a classical toolchain (ie `gcc`) will likely fail.
+
 ## Run Your Transformed QIR
 
 Now that you've got an output `.bc` file, you can inspect it by disassembling it (optional): `llvm-dis output.bc`, assuming that's what you named your output file in the CLI command above.
@@ -165,6 +181,20 @@ gcc -Lpath/to/qcs-sdk-c-shared-lib  -lqcs -L./helper -lhelper output.bc -o progr
 ```
 
 That produces an executable `program` which you can then run to execute your program on QCS. Happy computing!
+
+## Transpile QIR to Quil
+
+To transpile an input QIR program to Quil, run the CLI as shown here, following the LLVM-related instructions above. Note that this command only works for "simple" QIR modules which satisfy the following:
+
+- All quantum instructions are contained within a single basic block, labeled `body`, within the entrypoint function.
+- That function itself makes no function calls within the `body` block.
+- The `body` basic block satisfies the _basic block preconditions_ described above in [QIR Preconditions](#qir-preconditions).
+
+```
+cargo run --features llvm11-0 transpile-to-quil path/to/input.bc
+```
+
+This will write the Quil program and shot count to `stdout`.
 
 ## Troubleshooting
 
