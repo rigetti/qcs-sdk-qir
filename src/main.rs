@@ -16,7 +16,7 @@
 use std::path::PathBuf;
 
 use crate::context::QCSCompilerContext;
-use crate::transform::shot_count_block::transpile_module;
+use crate::transform::shot_count_block;
 use context::context::ContextOptions;
 use context::target::ExecutionTarget;
 use structopt::StructOpt;
@@ -55,6 +55,9 @@ enum QCSQIRCLI {
         #[structopt(long)]
         quil_rewiring_pragma: Option<String>,
     },
+    TranspileToQuil {
+        llvm_bitcode_path: PathBuf,
+    },
 }
 
 fn main() -> Result<(), ()> {
@@ -86,7 +89,7 @@ fn main() -> Result<(), ()> {
                 context_options,
             );
 
-            transpile_module(&mut context);
+            shot_count_block::quil::transpile_module(&mut context).expect("transformation failed");
 
             if add_main_entrypoint {
                 crate::interop::entrypoint::add_main_entrypoint(&mut context);
@@ -100,6 +103,25 @@ fn main() -> Result<(), ()> {
                     context.module.print_to_stderr();
                 }
             }
+        }
+        QCSQIRCLI::TranspileToQuil { llvm_bitcode_path } => {
+            let base_context = inkwell::context::Context::create();
+            let mut context = QCSCompilerContext::new_from_file(
+                &base_context,
+                "qcs",
+                llvm_bitcode_path
+                    .to_str()
+                    .expect("provided LLVM bitcode path is not valid"),
+                ExecutionTarget::QVM, // TODO: make this optional
+                ContextOptions::default(),
+            );
+            let output = shot_count_block::quil::transpile_module(&mut context)
+                .expect("transpilation failed");
+            println!(
+                "shot count: {}\nprogram: {}\n",
+                output.shot_count,
+                output.program.to_string(true)
+            )
         }
     }
 
