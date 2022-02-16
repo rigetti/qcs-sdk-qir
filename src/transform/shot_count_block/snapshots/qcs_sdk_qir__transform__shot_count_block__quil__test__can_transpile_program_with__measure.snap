@@ -1,0 +1,9 @@
+---
+source: src/transform/shot_count_block/quil.rs
+assertion_line: 201
+expression: result.program.to_string(true)
+
+---
+DECLARE ro BIT[1]
+MEASURE 1 ro[0]
+

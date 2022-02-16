@@ -54,6 +54,7 @@ impl<'ctx> QCSCompilerContext<'ctx> {
     }
 }
 
+#[derive(Default)]
 pub(crate) struct ContextOptions {
     pub cache_executables: bool,
     pub rewiring_pragma: Option<String>,

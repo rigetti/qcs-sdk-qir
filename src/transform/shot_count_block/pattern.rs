@@ -17,9 +17,12 @@
 use either::Either;
 use inkwell::{
     basic_block::BasicBlock,
-    values::{BasicValue, BasicValueEnum, FloatValue, InstructionOpcode, InstructionValue},
+    values::{
+        BasicValue, BasicValueEnum, FloatValue, FunctionValue, InstructionOpcode, InstructionValue,
+    },
 };
 use lazy_static::lazy_static;
+use log::{debug, info};
 use quil_rs::{
     expression::Expression,
     instruction::{GateModifier, MemoryReference, Qubit},
@@ -46,6 +49,18 @@ use super::PARAMETER_MEMORY_REGION_NAME;
 /// * what the next instruction following the pattern is, if any.
 type PatternResult<'ctx, T> = Option<(Option<InstructionValue<'ctx>>, T)>;
 
+/// A ShotCountPatternMatchContext accumulates state as it scans a QIR program.
+/// It is used to infer a shot count from a fixed count loop wrapping some number of
+/// quantum and classical instructions within a basic block.
+///
+/// The pattern it looks for is the following:
+///
+/// * loop start and shot count - see [shot_count_loop_start].
+/// * any number of the following:
+///   * quantum instructions, which it earmarks for removal from the program, transpiles to Quil,
+///     and appends to its running Quil program - see [quantum_instruction]
+///   * classical instructions, which are ignored and left in place.
+/// * a shot count increment and branch instruction - see [shot_count_loop_end].
 #[derive(Debug, Default)]
 pub(crate) struct ShotCountPatternMatchContext<'ctx> {
     // The instruction used to initialize the shot count value
@@ -99,13 +114,90 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
             None
         }
     }
+
+    /// Build the pattern context from a basic block.
+    ///
+    /// # Arguments
+    ///
+    /// * `context`: overall compiler context
+    /// * `basic_block`: the subject block to be searched for the pattern
+    /// * `visited_functions`: list of function names which have already been transpiled. Used to prevent recursion loops.
+    /// * `function_call_callback`: callback to be invoked when a function call is found within the block, in order to recursively
+    ///    transpile an LLVM module.
+    pub fn from_basic_block(
+        context: &mut QCSCompilerContext<'ctx>,
+        basic_block: BasicBlock<'ctx>,
+        visited_functions: &[&str],
+        function_call_callback: fn(
+            &mut QCSCompilerContext<'ctx>,
+            FunctionValue<'ctx>,
+            &[&str],
+        ) -> eyre::Result<()>,
+    ) -> eyre::Result<Self> {
+        let mut next_instruction = basic_block.get_first_instruction();
+        let mut pattern_context = ShotCountPatternMatchContext::default();
+
+        info!(
+            "starting transpile: block {}",
+            basic_block.get_name().to_str().unwrap()
+        );
+
+        while let Some(instruction) = next_instruction {
+            if instruction.get_opcode() == InstructionOpcode::Call {
+                // TODO: handle callbr?
+                if let Some(Either::Left(BasicValueEnum::PointerValue(pointer_value))) =
+                    instruction.get_operand(0)
+                {
+                    let function_name = pointer_value.get_name().to_str().unwrap();
+                    if !visited_functions.contains(&function_name) {
+                        if let Some(function) = context.module.get_function(function_name) {
+                            let mut visited_functions = Vec::from(visited_functions);
+                            visited_functions.push(function_name);
+                            function_call_callback(context, function, &visited_functions)?;
+                            next_instruction = instruction.get_next_instruction();
+                            continue;
+                        }
+                    }
+                }
+            }
+
+            // If we haven't yet found the loop start...
+            if pattern_context.initial_instruction.is_none() {
+                // Check if we've found it in this instruction. If not, continue on to the next instruction until we do find it.
+                // FIXME: ensure we encounter this first (i.e. the pattern must be matched in order)
+                if let Some((pattern_instruction, _)) =
+                    shot_count_loop_start(&mut pattern_context, instruction)
+                {
+                    debug!("matched shot count start: {:?}", instruction);
+                    next_instruction = pattern_instruction;
+                    continue;
+                }
+            } else {
+                if let Some((pattern_instruction, _)) =
+                    quantum_instruction(context, &mut pattern_context, instruction)
+                {
+                    debug!("matched quantum instruction: {:?}", instruction);
+                    next_instruction = pattern_instruction;
+                    continue;
+                } else if let Some((_, _)) =
+                    shot_count_loop_end(context, &mut pattern_context, instruction)
+                {
+                    debug!("matched shot count end: {:?}", instruction);
+                    break;
+                }
+            }
+
+            next_instruction = instruction.get_next_instruction();
+        }
+
+        Ok(pattern_context)
+    }
 }
 
 /// Match the initial instruction of a shot-count loop. This may take one of the following forms:
 ///
 /// * a `phi` instruction with two branches, where one of the branches is the name of the current basic block
 ///   and the other branch sets a constant value of `1`
-/// * (others TBD)
 ///
 /// Example:
 ///
@@ -114,7 +206,7 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
 /// ```
 ///
 /// If matched, this function returns the variable name assigned by the `phi` operand, for use in identifying the end of the loop,
-/// as well as the number of shots
+/// as well as the number of shots.
 pub(crate) fn shot_count_loop_start<'a, 'ctx>(
     pattern_context: &'a mut ShotCountPatternMatchContext<'ctx>,
     instruction: InstructionValue<'ctx>,
