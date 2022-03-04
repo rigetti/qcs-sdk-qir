@@ -27,15 +27,18 @@ use std::convert::TryFrom;
 
 use crate::context::QCSCompilerContext;
 
-pub(crate) fn get_called_function_name(instruction: &InstructionValue) -> Option<String> {
+pub(crate) fn get_called_function_name(instruction: InstructionValue) -> Option<String> {
     let intrinsic_function_target = instruction
         .get_operand(instruction.get_num_operands() - 1)
         .expect("expected a final operand in Call instruction");
 
-    if let Either::Left(BasicValueEnum::PointerValue(ptr_value)) = intrinsic_function_target {
-        return ptr_value.get_name().to_str().ok().map(|s| s.to_owned());
-    } else {
-        todo!("BasicBlock target of function call");
+    match intrinsic_function_target {
+        Either::Left(BasicValueEnum::PointerValue(ptr_value)) => ptr_value
+            .get_name()
+            .to_str()
+            .ok()
+            .map(std::borrow::ToOwned::to_owned),
+        _ => todo!("BasicBlock target of function call"),
     }
 }
 
@@ -50,7 +53,7 @@ pub enum OperationArgument<'ctx> {
 /// Return the arguments used to invoke a quantum runtime intrinsic, `@__quantum__qis__*__body`, in order.
 pub(crate) fn get_qis_function_arguments<'ctx>(
     context: &QCSCompilerContext,
-    instruction: &InstructionValue<'ctx>,
+    instruction: InstructionValue<'ctx>,
 ) -> Vec<OperationArgument<'ctx>> {
     let operand_count = instruction.get_num_operands();
 
@@ -72,14 +75,14 @@ pub(crate) fn get_qis_function_arguments<'ctx>(
                         .expect("unable to convert C String to string")
                     {
                         "Qubit" => {
-                            let qubit_index = pointer_value_to_u64(context, &ptr_value)
+                            let qubit_index = pointer_value_to_u64(context, ptr_value)
                                 .expect("qubit index must be a non-negative number");
-                            return OperationArgument::Qubit(qubit_index);
+                            OperationArgument::Qubit(qubit_index)
                         }
                         "Result" => {
-                            let result_index = pointer_value_to_u64(context, &ptr_value)
+                            let result_index = pointer_value_to_u64(context, ptr_value)
                                 .expect("unable to derive Result index from pointer");
-                            return OperationArgument::Result(result_index);
+                            OperationArgument::Result(result_index)
                         }
                         other => {
                             todo!(
@@ -88,9 +91,9 @@ pub(crate) fn get_qis_function_arguments<'ctx>(
                                 instruction
                             )
                         }
-                    };
+                    }
                 } else if let Some(inst) = ptr_value.as_instruction() {
-                    return OperationArgument::Instruction(inst);
+                    OperationArgument::Instruction(inst)
                 } else {
                     todo!(
                         "unexpected pointer value {:?} as operand {} of instruction {:?}",
@@ -100,7 +103,7 @@ pub(crate) fn get_qis_function_arguments<'ctx>(
                     )
                 }
             } else if let Either::Left(BasicValueEnum::FloatValue(value)) = target {
-                return OperationArgument::Parameter(value);
+                OperationArgument::Parameter(value)
             } else {
                 todo!("non-pointer/float function argument in {:?}", instruction);
             }
@@ -122,7 +125,7 @@ pub(crate) fn operand_to_integer<'ctx>(
 /// Attempt to cast a pointer to an immediate int and return that value if successful
 pub(crate) fn pointer_value_to_u64(
     context: &QCSCompilerContext,
-    value: &PointerValue,
+    value: PointerValue,
 ) -> Option<u64> {
     value
         .const_to_int(context.base_context.i64_type())
@@ -131,15 +134,15 @@ pub(crate) fn pointer_value_to_u64(
 }
 
 /// Attempt to cast a pointer to an immediate int and return that value if successful
-pub(crate) fn integer_value_to_u64(_context: &QCSCompilerContext, value: &IntValue) -> Option<u64> {
+pub(crate) fn integer_value_to_u64(_context: &QCSCompilerContext, value: IntValue) -> Option<u64> {
     value
         .get_sign_extended_constant()
         .and_then(|value| u64::try_from(value).ok())
 }
 
-pub(crate) fn get_conditional_branch_else_target<'ctx>(
-    instruction: &InstructionValue<'ctx>,
-) -> Option<BasicBlock<'ctx>> {
+pub(crate) fn get_conditional_branch_else_target(
+    instruction: InstructionValue,
+) -> Option<BasicBlock> {
     if let Some(Either::Right(target)) = instruction.get_operand(1) {
         Some(target)
     } else {
@@ -152,13 +155,13 @@ pub(crate) fn get_conditional_branch_else_target<'ctx>(
 /// Note: this function moves the builder's position and does not restore it.
 pub(crate) fn replace_conditional_branch_target(
     context: &mut QCSCompilerContext,
-    instruction: &InstructionValue,
+    instruction: InstructionValue,
     replace_then: Option<&BasicBlock>,
     replace_else: Option<&BasicBlock>,
 ) {
     context
         .builder
-        .position_at(instruction.get_parent().unwrap(), instruction);
+        .position_at(instruction.get_parent().unwrap(), &instruction);
 
     let original_then_block = if let Some(Either::Right(target)) = instruction.get_operand(2) {
         target
@@ -196,13 +199,13 @@ pub(crate) fn replace_conditional_branch_target(
 /// Given a `phi` instruction, replace the existing matching block with the new one specified.
 ///
 /// Parameters:
-/// * reverse_match: whether to match all incoming clauses that _aren't_ from the specified original basic block instead
+/// * `reverse_match`: whether to match all incoming clauses that _aren't_ from the specified original basic block instead
 ///   of those that _are_.
 pub(crate) fn replace_phi_clause(
     context: &mut QCSCompilerContext,
-    instruction: &PhiValue,
-    old_basic_block: &BasicBlock,
-    new_basic_block: &BasicBlock,
+    instruction: PhiValue,
+    old_basic_block: BasicBlock,
+    new_basic_block: BasicBlock,
     reverse_match: bool,
 ) {
     let basic_block_parent = instruction.as_instruction().get_parent().unwrap();
@@ -225,17 +228,17 @@ pub(crate) fn replace_phi_clause(
     for index in 0..instruction.count_incoming() {
         let value = instruction.get_incoming(index).unwrap();
 
-        if reverse_match ^ (&value.1 == old_basic_block) {
-            new_incoming.push((value.0, *new_basic_block))
+        if reverse_match ^ (value.1 == old_basic_block) {
+            new_incoming.push((value.0, new_basic_block));
         } else {
-            new_incoming.push((value.0, value.1))
+            new_incoming.push((value.0, value.1));
         }
     }
 
     let mut new_incoming_ref: Vec<(&dyn BasicValue, BasicBlock)> = vec![];
 
-    for element in new_incoming.iter() {
-        new_incoming_ref.push((&element.0, element.1))
+    for element in &new_incoming {
+        new_incoming_ref.push((&element.0, element.1));
     }
 
     // TODO: derive the type from the actual instruction instead of assuming i64
@@ -250,7 +253,7 @@ pub(crate) fn replace_phi_clause(
 
 /// Print each of the operands of an instruction in debug format to stdout on its own labeled line.
 #[allow(dead_code)]
-pub(crate) fn print_all_operands(instruction: &InstructionValue) {
+pub(crate) fn print_all_operands(instruction: InstructionValue) {
     println!("instruction: {:?}", instruction);
 
     for i in 0..instruction.get_num_operands() {
@@ -260,29 +263,26 @@ pub(crate) fn print_all_operands(instruction: &InstructionValue) {
 
 pub(crate) fn replace_phi_clauses(
     context: &mut QCSCompilerContext,
-    within_basic_block: &BasicBlock,
-    old_basic_block: &BasicBlock,
-    new_basic_block: &BasicBlock,
+    within_basic_block: BasicBlock,
+    old_basic_block: BasicBlock,
+    new_basic_block: BasicBlock,
     reverse_match: bool,
 ) {
     let mut instruction = within_basic_block.get_first_instruction();
-    loop {
-        if let Some(current_instruction) = instruction {
-            // We have to get a valid handle on the next instruction before replace_phi_clause deletes this one.
-            let next_instruction = current_instruction.get_next_instruction();
-            if current_instruction.get_opcode() == InstructionOpcode::Phi {
-                replace_phi_clause(
-                    context,
-                    &current_instruction.as_phi_value(),
-                    old_basic_block,
-                    new_basic_block,
-                    reverse_match,
-                );
-            }
-            instruction = next_instruction;
-        } else {
-            break;
+
+    while let Some(current_instruction) = instruction {
+        // We have to get a valid handle on the next instruction before replace_phi_clause deletes this one.
+        let next_instruction = current_instruction.get_next_instruction();
+        if current_instruction.get_opcode() == InstructionOpcode::Phi {
+            replace_phi_clause(
+                context,
+                current_instruction.as_phi_value(),
+                old_basic_block,
+                new_basic_block,
+                reverse_match,
+            );
         }
+        instruction = next_instruction;
     }
 }
 
@@ -294,21 +294,23 @@ pub(crate) fn remove_instructions_in_safe_order(instructions: Vec<InstructionVal
     loop {
         let mut instructions_removed_in_round = false;
 
-        instructions.retain(|instr| match instr.get_first_use() {
-            Some(_) => true,
-            None => {
+        instructions.retain(|instr| {
+            if instr.get_first_use().is_some() {
+                true
+            } else {
                 instr.remove_from_basic_block();
                 instructions_removed_in_round = true;
                 false
             }
         });
 
-        if instructions.len() == 0 {
+        if instructions.is_empty() {
             return;
         }
 
-        if !instructions_removed_in_round {
-            panic!("Unable to remove remaining instructions safely")
-        }
+        assert!(
+            instructions_removed_in_round,
+            "Unable to remove remaining instructions safely"
+        );
     }
 }

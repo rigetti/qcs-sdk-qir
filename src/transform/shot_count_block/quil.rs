@@ -25,7 +25,7 @@ use super::pattern::ShotCountPatternMatchContext;
 use super::PARAMETER_MEMORY_REGION_NAME;
 
 /// Encapsulates the result of transpiling a QIR module to a Quil program
-pub struct QuilProgramOutput {
+pub struct ProgramOutput {
     pub program: quil_rs::Program,
     pub shot_count: u64,
 }
@@ -33,12 +33,10 @@ pub struct QuilProgramOutput {
 /// Transform an entire QIR module to a single Quil program with shot count inferred
 /// from a program loop counter.
 #[allow(dead_code)]
-pub(crate) fn transpile_module(
-    context: &mut QCSCompilerContext,
-) -> eyre::Result<QuilProgramOutput> {
+pub(crate) fn transpile_module(context: &mut QCSCompilerContext) -> eyre::Result<ProgramOutput> {
     let entrypoint_function =
         get_entry_function(&context.module).expect("entrypoint not found in module");
-    transpile_function(context, entrypoint_function, &vec![])
+    transpile_function(context, entrypoint_function, &[])
 }
 
 /// Transpile a single QIR function body to a Quil program. This function may have any number
@@ -48,7 +46,7 @@ pub(crate) fn transpile_function<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     function: FunctionValue<'ctx>,
     visited_functions: &[&str],
-) -> eyre::Result<QuilProgramOutput> {
+) -> eyre::Result<ProgramOutput> {
     let blocks = function.get_basic_blocks();
     let body_block = blocks
         .into_iter()
@@ -64,7 +62,7 @@ pub(crate) fn transpile_basic_block<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     basic_block: BasicBlock<'ctx>,
     visited_functions: &[&str],
-) -> eyre::Result<QuilProgramOutput> {
+) -> eyre::Result<ProgramOutput> {
     let pattern_context = ShotCountPatternMatchContext::from_basic_block(
         context,
         basic_block,
@@ -72,7 +70,7 @@ pub(crate) fn transpile_basic_block<'ctx>(
         fail_on_nested_function_call,
     )?;
 
-    build_quil_program(context, pattern_context)
+    build_quil_program(context, &pattern_context)
 }
 
 /// This function exists to satisfy the signature needed to form a `ShotCountPatternMatchContext`.
@@ -94,8 +92,8 @@ pub(crate) fn fail_on_nested_function_call<'ctx>(
 /// If no pattern was detected, return an error.
 pub(crate) fn build_quil_program<'ctx, 'p: 'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
-    pattern_context: ShotCountPatternMatchContext<'p>,
-) -> eyre::Result<QuilProgramOutput> {
+    pattern_context: &ShotCountPatternMatchContext<'p>,
+) -> eyre::Result<ProgramOutput> {
     if let Some((program, shots)) = pattern_context.get_program_data() {
         let mut program = program.clone();
 
@@ -153,7 +151,7 @@ pub(crate) fn build_quil_program<'ctx, 'p: 'ctx>(
             program = new_program;
         }
 
-        Ok(QuilProgramOutput {
+        Ok(ProgramOutput {
             program,
             shot_count: shots,
         })
@@ -184,7 +182,7 @@ mod test {
                         &base_context,
                         "qcs",
                         format!("test/fixtures/programs/{}.bc", stringify!($name)).as_str(),
-                        ExecutionTarget::QVM,
+                        ExecutionTarget::Qvm,
                         ContextOptions {
                             cache_executables: false,
                             rewiring_pragma: None,

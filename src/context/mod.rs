@@ -13,6 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  **/
+#[allow(clippy::module_inception)]
 pub(crate) mod context;
 pub(crate) mod target;
 pub(crate) mod types;

@@ -27,7 +27,7 @@ mod transform;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "QIRQuilTranslator", about = "Translate QIR to Quil")]
-enum QCSQIRCLI {
+enum QcsQirCli {
     #[structopt(
         name = "transform",
         about = "Given an LLVM bitcode file, replace quantum intrinsics with calls to execute equivalent Quil on Rigetti QCS"
@@ -60,12 +60,12 @@ enum QCSQIRCLI {
     },
 }
 
-fn main() -> Result<(), ()> {
+fn main() {
     env_logger::init();
 
-    let opt = QCSQIRCLI::from_args();
+    let opt = QcsQirCli::from_args();
     match opt {
-        QCSQIRCLI::Transform {
+        QcsQirCli::Transform {
             add_main_entrypoint,
             llvm_bitcode_path,
             bitcode_out,
@@ -104,7 +104,7 @@ fn main() -> Result<(), ()> {
                 }
             }
         }
-        QCSQIRCLI::TranspileToQuil { llvm_bitcode_path } => {
+        QcsQirCli::TranspileToQuil { llvm_bitcode_path } => {
             let base_context = inkwell::context::Context::create();
             let mut context = QCSCompilerContext::new_from_file(
                 &base_context,
@@ -112,7 +112,7 @@ fn main() -> Result<(), ()> {
                 llvm_bitcode_path
                     .to_str()
                     .expect("provided LLVM bitcode path is not valid"),
-                ExecutionTarget::QVM, // TODO: make this optional
+                ExecutionTarget::Qvm, // TODO: make this optional
                 ContextOptions::default(),
             );
             let output = shot_count_block::quil::transpile_module(&mut context)
@@ -121,9 +121,7 @@ fn main() -> Result<(), ()> {
                 "shot count: {}\nprogram: {}\n",
                 output.shot_count,
                 output.program.to_string(true)
-            )
+            );
         }
     }
-
-    Ok(())
 }

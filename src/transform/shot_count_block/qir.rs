@@ -110,7 +110,7 @@ pub(crate) fn build_populate_executable_cache_function<'ctx>(
 pub(crate) fn transpile_module(context: &mut QCSCompilerContext) -> eyre::Result<()> {
     let entrypoint_function =
         get_entry_function(&context.module).expect("entrypoint not found in module");
-    transpile_function(context, entrypoint_function, &vec![])?;
+    transpile_function(context, entrypoint_function, &[])?;
     let populate_function = build_populate_executable_cache_function(context);
 
     let entry_basic_block = entrypoint_function
@@ -153,11 +153,12 @@ pub(crate) fn transpile_basic_block<'ctx>(
     insert_quil_program(context, pattern_context, basic_block)
 }
 
-/// Insert the quil program which has been collected from a BasicBlock (if any):
+/// Insert the quil program which has been collected from a `BasicBlock` (if any):
 ///
 /// 1. Create a global variable with the program text
 /// 2. Insert a shared library call to execute that program text with shot count
 /// 3. Remove all of the relevant instructions from the program
+#[allow(clippy::too_many_lines, clippy::unnecessary_wraps)]
 pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     pattern_context: ShotCountPatternMatchContext<'p>,
@@ -229,7 +230,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
         // We write all the new instructions to a new basic block
         let execution_basic_block = context.base_context.insert_basic_block_after(
             basic_block,
-            format!("{}_execution", basic_block.get_name().to_str().unwrap()).as_str(),
+            &format!("{}_execution", basic_block.get_name().to_str()?),
         );
         basic_block.replace_all_uses_with(&execution_basic_block);
         context.builder.position_at_end(execution_basic_block);
@@ -266,10 +267,10 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
         }
 
         let execution_result = match &context.target {
-            crate::context::target::ExecutionTarget::QPU(_) => {
+            crate::context::target::ExecutionTarget::Qpu(_) => {
                 call::execute_on_qpu(context, &executable)
             }
-            crate::context::target::ExecutionTarget::QVM => {
+            crate::context::target::ExecutionTarget::Qvm => {
                 call::execute_on_qvm(context, &executable)
             }
         };
@@ -310,7 +311,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
 
         // Record which block was originally the target following execution & processing of shots in this block
         let original_next_block =
-            get_conditional_branch_else_target(&basic_block.get_terminator().unwrap())
+            get_conditional_branch_else_target(basic_block.get_terminator().unwrap())
                 .expect("expected the basic block to have a conditional 'else' target");
 
         context.builder.position_at_end(cleanup_basic_block);
@@ -321,16 +322,16 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
 
         replace_conditional_branch_target(
             context,
-            &basic_block.get_terminator().unwrap(),
+            basic_block.get_terminator().unwrap(),
             Some(&basic_block),
             Some(&cleanup_basic_block),
         );
 
         replace_phi_clauses(
             context,
-            &basic_block,
-            &basic_block,
-            &execution_basic_block,
+            basic_block,
+            basic_block,
+            execution_basic_block,
             true,
         );
 
@@ -373,7 +374,7 @@ mod test {
                         &base_context,
                         "qcs",
                         format!("test/fixtures/programs/{}.bc", stringify!($name)).as_str(),
-                        ExecutionTarget::QVM,
+                        ExecutionTarget::Qvm,
                         ContextOptions {
                             cache_executables: false,
                             rewiring_pragma: None,
