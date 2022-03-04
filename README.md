@@ -138,7 +138,7 @@ export PATH=$PATH:/path/to/qcs-sdk-qir/helper
 ```
 
 
-Build the CLI using `cargo build --bin`.
+Build the CLI using `cargo build --bin qcs-sdk-qir --features llvm11-0`.
 
 ## Transform QIR
 
