@@ -1,18 +1,24 @@
 [package]
 name = "qcs-sdk-qir"
 version = "0.1.0"
-authors = ["Kalan <ksnyder@rigetti.com>", "Mark Skilbeck <mark.skilbeck@rigetti.com>"]
+authors = [
+    "Kalan <ksnyder@rigetti.com>",
+    "Mark Skilbeck <mark.skilbeck@rigetti.com>",
+    "Steve Manuel <smanuel@rigetti.com>",
+]
 edition = "2018"
 
 [dependencies]
 either = "*"
 env_logger = "0.9.0"
 eyre = "0.6.6"
-inkwell = { git = "https://github.com/kalzoo/inkwell", branch = "274-instruction-to-phi", features = ["target-x86"] }
+inkwell = { git = "https://github.com/kalzoo/inkwell", branch = "274-instruction-to-phi", features = [
+    "target-x86",
+] }
 lazy_static = "1.4.0"
 log = "0.4.14"
 num-complex = "*"
-quil-rs = "0.8.0"
+quil-rs = "0.8.5"
 regex = "1.5.4"
 structopt = "0.3.21"
 
@@ -22,3 +28,4 @@ insta = "1.8.0"
 [features]
 llvm11-0 = ["inkwell/llvm11-0"]
 llvm12-0 = ["inkwell/llvm12-0"]
+llvm13-0 = ["inkwell/llvm13-0"]

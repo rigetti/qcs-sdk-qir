@@ -204,6 +204,7 @@ dependencies = [
  "libc",
  "llvm-sys 110.0.3",
  "llvm-sys 120.2.3",
+ "llvm-sys 130.0.3",
  "once_cell",
  "parking_lot",
 ]
@@ -306,6 +307,19 @@ name = "llvm-sys"
 version = "120.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ce76f8393b7a607a906087666db398d872db739622e644e58552c198ccdfdf45"
+dependencies = [
+ "cc",
+ "lazy_static",
+ "libc",
+ "regex",
+ "semver",
+]
+
+[[package]]
+name = "llvm-sys"
+version = "130.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95eb03b4f7ae21f48ef7c565a3e3aa22c50616aea64645fb1fd7f6f56b51c274"
 dependencies = [
  "cc",
  "lazy_static",
@@ -471,9 +485,9 @@ dependencies = [
 
 [[package]]
 name = "quil-rs"
-version = "0.8.1"
+version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9fd98094ba259ff9f435644206ef85d888a874bfd154bdb41cd70a1edc0618e8"
+checksum = "675533bdf9444123c24f043834e6abeec762d99b77424b6644810f55a103004a"
 dependencies = [
  "indexmap",
  "lexical",
