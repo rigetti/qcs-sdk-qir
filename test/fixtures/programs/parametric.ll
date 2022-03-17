@@ -3,7 +3,7 @@
 
 declare void @__quantum__qis__rz__body(double, %Qubit*) local_unnamed_addr
 
-; simple function which executes a hadamard gate and that's it.
+; function that executes an RZ gate on a single qubit, parameterized by 2 values
 define internal fastcc void @QuantumApplication__Run__body() unnamed_addr {
 
 entry:
