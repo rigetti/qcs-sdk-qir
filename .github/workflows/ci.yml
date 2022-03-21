@@ -1,8 +1,6 @@
-# Based on https://github.com/actions-rs/meta/blob/master/recipes/msrv.md
-
 on: [ push, pull_request ]
 
-name: MSRV
+name: CI
 
 jobs:
   check:
@@ -10,7 +8,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        os: [macos-latest, ubuntu-latest]
         rust:
           - stable
         llvm_version: [12, 13]
@@ -46,7 +44,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        os: [macos-latest, ubuntu-latest]
         rust:
           - stable
         llvm_version: [12, 13]
@@ -82,7 +80,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        os: [macos-latest, ubuntu-latest]
         rust:
           - stable
         llvm_version: [12, 13]
@@ -112,7 +110,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        os: [macos-latest, ubuntu-latest]
         rust:
           - stable
         llvm_version: [12, 13]
@@ -151,7 +149,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        os: [macos-latest, ubuntu-latest]
         rust:
           - stable
         llvm_version: [12, 13]
