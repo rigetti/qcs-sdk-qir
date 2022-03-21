@@ -7,9 +7,10 @@ name: MSRV
 jobs:
   check:
     name: Check
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
         rust:
           - stable
         llvm_version: [12, 13]
@@ -32,6 +33,7 @@ jobs:
     
       - name: Install missing LLVM deps # there is a shared lib error if this is missing
         run: sudo apt-get update && sudo apt-get install -y libtinfo5
+        if: ${{ matrix.os == 'ubuntu-latest' }}
     
       - name: Run cargo check
         uses: actions-rs/cargo@v1
@@ -41,9 +43,10 @@ jobs:
 
   test:
     name: Test Suite
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
         rust:
           - stable
         llvm_version: [12, 13]
@@ -66,6 +69,7 @@ jobs:
     
       - name: Install missing LLVM deps # there is a shared lib error if this is missing
         run: sudo apt-get update && sudo apt-get install -y libtinfo5
+        if: ${{ matrix.os == 'ubuntu-latest' }}
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
@@ -75,9 +79,10 @@ jobs:
 
   fmt:
     name: Rustfmt
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
         rust:
           - stable
         llvm_version: [12, 13]
@@ -104,9 +109,10 @@ jobs:
 
   clippy:
     name: Clippy
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
         rust:
           - stable
         llvm_version: [12, 13]
@@ -132,6 +138,7 @@ jobs:
 
       - name: Install missing LLVM deps # there is a shared lib error if this is missing
         run: sudo apt-get update && sudo apt-get install -y libtinfo5
+        if: ${{ matrix.os == 'ubuntu-latest' }}
     
       - name: Run cargo clippy
         uses: actions-rs/cargo@v1
@@ -141,9 +148,10 @@ jobs:
     
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
         rust:
           - stable
         llvm_version: [12, 13]
@@ -166,6 +174,7 @@ jobs:
 
       - name: Install missing LLVM deps # there is a shared lib error if this is missing
         run: sudo apt-get update && sudo apt-get install -y libtinfo5
+        if: ${{ matrix.os == 'ubuntu-latest' }}
     
       # TODO: build --release, save artifacts to publish later
       - name: Run cargo build
