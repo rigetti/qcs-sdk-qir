@@ -202,7 +202,6 @@ dependencies = [
  "either",
  "inkwell_internals",
  "libc",
- "llvm-sys 110.0.3",
  "llvm-sys 120.2.3",
  "llvm-sys 130.0.3",
  "once_cell",
@@ -288,19 +287,6 @@ name = "linked-hash-map"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7fb9b38af92608140b86b693604b9ffcc5824240a484d1ecd4795bacb2fe88f3"
-
-[[package]]
-name = "llvm-sys"
-version = "110.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b918288a585ac36703abefcbc5d4c43137b604ec0c2d39abefb55e25c7501dc"
-dependencies = [
- "cc",
- "lazy_static",
- "libc",
- "regex",
- "semver",
-]
 
 [[package]]
 name = "llvm-sys"

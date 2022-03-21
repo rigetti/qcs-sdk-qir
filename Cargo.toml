@@ -27,6 +27,5 @@ structopt = "0.3.21"
 insta = "1.8.0"
 
 [features]
-llvm11-0 = ["inkwell/llvm11-0"]
 llvm12-0 = ["inkwell/llvm12-0"]
 llvm13-0 = ["inkwell/llvm13-0"]
