@@ -172,4 +172,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --bin qcs-sdk-qir --features llvm${{ matrix.llvm_version }}.0-0
+          args: --bin qcs-sdk-qir --features llvm${{ matrix.llvm_version }}-0
