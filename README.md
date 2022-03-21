@@ -138,20 +138,20 @@ export PATH=$PATH:/path/to/qcs-sdk-qir/helper
 ```
 
 
-Build the CLI using `cargo build --bin qcs-sdk-qir --features llvm11-0`.
+Build the CLI using `cargo build --bin qcs-sdk-qir --features llvm13-0`.
 
 ## Transform QIR
 
 To transpile an input QIR program, run the CLI. Note that you **must specify your LLVM version corresponding with your installed version or this will fail with dozens of errors**:
 
 ```
-cargo run --features llvm11-0 transform path/to/input.bc path/to/output.bc --add-main-entrypoint
+cargo run --features llvm13-0 transform path/to/input.bc path/to/output.bc --add-main-entrypoint
 ```
 
 Use the `--help` flag to view all options, such as whether to target the QVM or a QPU:
 
 ```
-cargo run --features llvm11-0 transform --help
+cargo run --features llvm13-0 transform --help
 ```
 
 ### QIR Preconditions
@@ -191,7 +191,7 @@ To transpile an input QIR program to Quil, run the CLI as shown here, following 
 - The `body` basic block satisfies the _basic block preconditions_ described above in [QIR Preconditions](#qir-preconditions).
 
 ```
-cargo run --features llvm11-0 transpile-to-quil path/to/input.bc
+cargo run --features llvm13-0 transpile-to-quil path/to/input.bc
 ```
 
 This will write the Quil program and shot count to `stdout`.
