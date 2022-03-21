@@ -1,0 +1,4 @@
+[tasks.assemble-llvm]
+command = "find"
+description = "Assemble all LLVM .ll files in this package into bitcode"
+args = [".", "-name", "*.ll", "-exec", "llvm-as", "{}", ";"]

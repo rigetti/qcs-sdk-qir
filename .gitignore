@@ -1,0 +1,5 @@
+# Ignore compiled results at the package's top level; these are probably a result of running the CLI
+/*.bc
+/*.ll
+
+target/

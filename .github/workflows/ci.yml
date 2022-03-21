@@ -1,0 +1,182 @@
+on: [ push, pull_request ]
+
+name: CI
+
+jobs:
+  check:
+    name: Check
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        rust:
+          - stable
+        llvm_version: [12, 13]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          override: true
+      
+      - uses: Swatinem/rust-cache@v1
+
+      - name: Install LLVM
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "${{ matrix.llvm_version }}.0"
+    
+      - name: Install missing LLVM deps # there is a shared lib error if this is missing
+        run: sudo apt-get update && sudo apt-get install -y libtinfo5
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+    
+      - name: Run cargo check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --features llvm${{ matrix.llvm_version }}-0
+
+  test:
+    name: Test Suite
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        rust:
+          - stable
+        llvm_version: [12, 13]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          override: true
+        
+      - uses: Swatinem/rust-cache@v1
+        
+      - name: Install LLVM
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "${{ matrix.llvm_version }}.0"
+    
+      - name: Install missing LLVM deps # there is a shared lib error if this is missing
+        run: sudo apt-get update && sudo apt-get install -y libtinfo5
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --features llvm${{ matrix.llvm_version }}-0
+
+  fmt:
+    name: Rustfmt
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        rust:
+          - stable
+        llvm_version: [12, 13]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          override: true
+      
+      - uses: Swatinem/rust-cache@v1
+
+      - name: Install rustfmt
+        run: rustup component add rustfmt
+
+      - name: Run cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  clippy:
+    name: Clippy
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        rust:
+          - stable
+        llvm_version: [12, 13]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          override: true
+      
+      - uses: Swatinem/rust-cache@v1
+
+      - name: Install clippy
+        run: rustup component add clippy
+
+      - name: Install LLVM
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "${{ matrix.llvm_version }}.0"
+
+      - name: Install missing LLVM deps # there is a shared lib error if this is missing
+        run: sudo apt-get update && sudo apt-get install -y libtinfo5
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+    
+      - name: Run cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --features llvm${{ matrix.llvm_version }}-0 -- -D clippy::pedantic
+    
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        rust:
+          - stable
+        llvm_version: [12, 13]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          override: true
+        
+      - uses: Swatinem/rust-cache@v1
+
+      - name: Install LLVM
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "${{ matrix.llvm_version }}.0"
+
+      - name: Install missing LLVM deps # there is a shared lib error if this is missing
+        run: sudo apt-get update && sudo apt-get install -y libtinfo5
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+    
+      # TODO: build --release, save artifacts to publish later
+      - name: Run cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --bin qcs-sdk-qir --features llvm${{ matrix.llvm_version }}-0

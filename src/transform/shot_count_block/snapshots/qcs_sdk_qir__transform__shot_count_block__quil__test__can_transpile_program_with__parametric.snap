@@ -1,0 +1,11 @@
+---
+source: src/transform/shot_count_block/quil.rs
+assertion_line: 203
+expression: result.program.to_string(true)
+
+---
+DECLARE __qir_param REAL[2]
+DECLARE ro BIT[0]
+RZ(__qir_param[0]) 0
+RZ(__qir_param[1]) 0
+
