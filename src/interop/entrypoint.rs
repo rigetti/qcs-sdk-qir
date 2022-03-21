@@ -35,7 +35,7 @@ pub(crate) fn get_alternate_entry_function<'ctx>(
     module.get_function("Microsoft__Quantum__Samples__RunMain__Interop")
 }
 
-/// Mutate the context to add a `main` function as an entrypoint for x86_64, which
+/// Mutate the context to add a `main` function as an entrypoint for `x86_64`, which
 /// itself calls the QIR standard entrypoint.
 pub(crate) fn add_main_entrypoint(context: &mut QCSCompilerContext) {
     let main_function = context.module.add_function(

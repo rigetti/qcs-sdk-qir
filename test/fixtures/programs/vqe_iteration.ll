@@ -22,7 +22,7 @@ declare void @__quantum__qis__mz__body(%Qubit*, %Result*) local_unnamed_addr
 
 declare i1 @__quantum__qis__read_result__body(%Result*) local_unnamed_addr
 
-; simple function which executes a hadamard gate and that's it.
+; a function which demonstrates a VQE algorithm
 define internal fastcc void @QuantumApplication__Run__body() unnamed_addr {
 
 entry:

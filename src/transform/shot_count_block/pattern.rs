@@ -49,18 +49,18 @@ use super::PARAMETER_MEMORY_REGION_NAME;
 /// * what the next instruction following the pattern is, if any.
 type PatternResult<'ctx, T> = Option<(Option<InstructionValue<'ctx>>, T)>;
 
-/// A ShotCountPatternMatchContext accumulates state as it scans a QIR program.
+/// A `ShotCountPatternMatchContext` accumulates state as it scans a QIR program.
 /// It is used to infer a shot count from a fixed count loop wrapping some number of
 /// quantum and classical instructions within a basic block.
 ///
 /// The pattern it looks for is the following:
 ///
-/// * loop start and shot count - see [shot_count_loop_start].
+/// * loop start and shot count - see [`shot_count_loop_start`].
 /// * any number of the following:
 ///   * quantum instructions, which it earmarks for removal from the program, transpiles to Quil,
-///     and appends to its running Quil program - see [quantum_instruction]
+///     and appends to its running Quil program - see [`quantum_instruction`]
 ///   * classical instructions, which are ignored and left in place.
-/// * a shot count increment and branch instruction - see [shot_count_loop_end].
+/// * a shot count increment and branch instruction - see [`shot_count_loop_end`].
 #[derive(Debug, Default)]
 pub(crate) struct ShotCountPatternMatchContext<'ctx> {
     // The instruction used to initialize the shot count value
@@ -105,10 +105,10 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
     /// return that information; otherwise, return `None` indicating that the pattern was not matched.
     pub fn get_program_data(&self) -> Option<(&quil_rs::Program, u64)> {
         if let Some(shots) = self.shot_count {
-            if !self.quil_program.to_instructions(false).is_empty() {
-                Some((&self.quil_program, shots))
-            } else {
+            if self.quil_program.to_instructions(false).is_empty() {
                 None
+            } else {
+                Some((&self.quil_program, shots))
             }
         } else {
             None
@@ -172,19 +172,17 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
                     next_instruction = pattern_instruction;
                     continue;
                 }
-            } else {
-                if let Some((pattern_instruction, _)) =
-                    quantum_instruction(context, &mut pattern_context, instruction)
-                {
-                    debug!("matched quantum instruction: {:?}", instruction);
-                    next_instruction = pattern_instruction;
-                    continue;
-                } else if let Some((_, _)) =
-                    shot_count_loop_end(context, &mut pattern_context, instruction)
-                {
-                    debug!("matched shot count end: {:?}", instruction);
-                    break;
-                }
+            } else if let Some((pattern_instruction, _)) =
+                quantum_instruction(context, &mut pattern_context, instruction)
+            {
+                debug!("matched quantum instruction: {:?}", instruction);
+                next_instruction = pattern_instruction;
+                continue;
+            } else if let Some((_, _)) =
+                shot_count_loop_end(context, &mut pattern_context, instruction)
+            {
+                debug!("matched shot count end: {:?}", instruction);
+                break;
             }
 
             next_instruction = instruction.get_next_instruction();
@@ -255,8 +253,8 @@ pub(crate) fn shot_count_loop_end<'a, 'ctx>(
             // initialized at the beginning of the block, i.e. `add nuw nsw i64 %0, 1`
             let shot_count_increment_is_1 = instruction
                 .get_operand(1)
-                .and_then(|operand| operand_to_integer(operand))
-                .and_then(|integer| integer_value_to_u64(context, &integer))
+                .and_then(operand_to_integer)
+                .and_then(|integer| integer_value_to_u64(context, integer))
                 .map_or(false, |int_value| int_value == 1);
 
             if shot_count_increment_is_1 {
@@ -330,7 +328,7 @@ pub(crate) fn shot_count_loop_end<'a, 'ctx>(
                                         .unwrap()
                                         .as_instruction_value(),
                                     pattern_context.initial_instruction
-                                )
+                                );
                             }
                         }
                     }
@@ -363,7 +361,7 @@ macro_rules! match_qis_argument {
     }};
 }
 
-/// Given a FloatValue which may be the parameter of a QIS intrinsic call, return the Quil Expression
+/// Given a `FloatValue` which may be the parameter of a QIS intrinsic call, return the Quil Expression
 /// which will be used to store its value at execution time.
 fn get_quil_parameter_expression<'ctx>(
     pattern_context: &mut ShotCountPatternMatchContext<'ctx>,
@@ -376,8 +374,8 @@ fn get_quil_parameter_expression<'ctx>(
     })
 }
 
-/// Given a FloatValue to be used as the parameter to a gate, return the index within the
-/// Quil MemoryReference that should be used to store this parameter's value.
+/// Given a `FloatValue` to be used as the parameter to a gate, return the index within the
+/// Quil `MemoryReference` that should be used to store this parameter's value.
 pub(crate) fn get_quil_parameter_index<'ctx>(
     pattern_context: &mut ShotCountPatternMatchContext<'ctx>,
     float_value: FloatValue<'ctx>,
@@ -387,13 +385,14 @@ pub(crate) fn get_quil_parameter_index<'ctx>(
         .iter()
         .position(|el| el == &float_value)
     {
-        return index;
+        index
     } else {
         pattern_context.parameters.push(float_value);
-        return pattern_context.parameters.len() - 1;
+        pattern_context.parameters.len() - 1
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn add_gate_instruction<'ctx>(
     pattern_context: &mut ShotCountPatternMatchContext<'ctx>,
     arguments: &[OperationArgument<'ctx>],
@@ -407,9 +406,7 @@ fn add_gate_instruction<'ctx>(
     let parameters = (0..parameter_count)
         .map(|arg_index| {
             let float_value = *match_qis_argument!(Parameter, arguments, arg_index, function_name);
-            let expression = get_quil_parameter_expression(pattern_context, float_value);
-
-            expression
+            get_quil_parameter_expression(pattern_context, float_value)
         })
         .collect();
     let qubits = (parameter_count..parameter_count + qubit_count)
@@ -426,11 +423,11 @@ fn add_gate_instruction<'ctx>(
     let mut modifiers = vec![];
 
     if adjoint {
-        modifiers.push(GateModifier::Dagger)
+        modifiers.push(GateModifier::Dagger);
     }
 
     if controlled {
-        modifiers.push(GateModifier::Controlled)
+        modifiers.push(GateModifier::Controlled);
     }
 
     let instruction = quil_rs::instruction::Instruction::Gate(quil_rs::instruction::Gate {
@@ -450,6 +447,7 @@ lazy_static! {
     .unwrap();
 }
 
+#[allow(clippy::too_many_lines)]
 pub(crate) fn quantum_instruction<'ctx>(
     context: &QCSCompilerContext<'ctx>,
     pattern_context: &mut ShotCountPatternMatchContext<'ctx>,
@@ -457,7 +455,7 @@ pub(crate) fn quantum_instruction<'ctx>(
 ) -> PatternResult<'ctx, ()> {
     match instruction.get_opcode() {
         inkwell::values::InstructionOpcode::Call => {
-            let function_target_name = get_called_function_name(&instruction);
+            let function_target_name = get_called_function_name(instruction);
 
             if let Some(function_name) = function_target_name {
                 if let Some(captures) = QIS_INTRINSIC_REGEX.captures(&function_name) {
@@ -465,7 +463,7 @@ pub(crate) fn quantum_instruction<'ctx>(
                     let adjoint = captures.name("adjoint").is_some();
                     let controlled = captures.name("controlled").is_some();
 
-                    let arguments = get_qis_function_arguments(context, &instruction);
+                    let arguments = get_qis_function_arguments(context, instruction);
 
                     let matched = match operation {
                         "cnot" => {
@@ -591,12 +589,12 @@ pub(crate) fn quantum_instruction<'ctx>(
                         None
                     }
                 } else if function_name == "__quantum__qis__read_result__body" {
-                    let arguments = get_qis_function_arguments(context, &instruction);
+                    let arguments = get_qis_function_arguments(context, instruction);
                     if let Some(OperationArgument::Result(result_index)) = arguments.get(0) {
                         let ro_index = pattern_context.read_result_mapping.get(result_index).unwrap_or_else(|| panic!("Result index {} was never the target of a measurement operation", result_index));
                         pattern_context
                             .readout_instruction_mapping
-                            .push((*ro_index, instruction))
+                            .push((*ro_index, instruction));
                     } else {
                         todo!("malformed read_result intrinsic")
                     }

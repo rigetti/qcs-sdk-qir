@@ -309,7 +309,7 @@ fn build_quantum_processor_id<'ctx>(
     types: &Types<'ctx>,
     target: &ExecutionTarget,
 ) -> Option<PointerValue<'ctx>> {
-    if let ExecutionTarget::QPU(quantum_processor_id) = target {
+    if let ExecutionTarget::Qpu(quantum_processor_id) = target {
         let global_string = unsafe {
             // NOTE: this segfaults if the builder is not already positioned within a basic block
             // see https://github.com/TheDan64/inkwell/issues/32

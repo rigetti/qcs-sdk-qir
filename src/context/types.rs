@@ -19,7 +19,7 @@ use inkwell::{
     AddressSpace,
 };
 
-fn build_string_type<'ctx>(context: &'ctx Context) -> PointerType<'ctx> {
+fn build_string_type(context: &Context) -> PointerType {
     context.i8_type().ptr_type(AddressSpace::Generic)
 }
 

@@ -15,7 +15,7 @@ body:
     ; shot count variable
     %0 = phi i64 [ %3, %body ], [ 1, %entry ]
     %count = phi i64 [ %select, %body ], [ 0, %entry ]
-    tail call void @__quantum__qis__h__body(%Qubit* nonnull inttoptr (i64 12 to %Qubit*))
+    tail call void @__quantum__qis__h__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*))
 
     ; measure a given qubit index
     tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*), %Result* null)

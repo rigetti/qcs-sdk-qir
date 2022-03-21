@@ -34,7 +34,7 @@ mod tests {
 
     #[test]
     fn can_load_bitcode_file() {
-        let path = "src/passes/data/module.bc";
+        let path = "test/fixtures/programs/module.bc";
         let context = inkwell::context::Context::create();
         load_module_from_bitcode_file(&context, "test-module", path);
     }

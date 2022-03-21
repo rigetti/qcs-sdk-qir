@@ -155,7 +155,7 @@ pub(crate) fn get_executable<'ctx>(
     )
 }
 
-/// Insert a call which accepts as its only argument an ExecutionResult, and panics and exits if that
+/// Insert a call which accepts as its only argument an `ExecutionResult`, and panics and exits if that
 /// result is a failure/error.
 pub(crate) fn panic_on_execution_result_failure<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
