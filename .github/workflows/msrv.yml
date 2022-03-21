@@ -4,9 +4,6 @@ on: [ push, pull_request ]
 
 name: MSRV
 
-env:
-  LLVM_VERSION: 13
-
 jobs:
   check:
     name: Check
@@ -24,11 +21,13 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           override: true
+      
+      - uses: Swatinem/rust-cache@v1
 
       - name: Install LLVM
         uses: KyleMayes/install-llvm-action@v1
         with:
-          version: "${{ env.LLVM_VERSION }}.0"
+          version: "${{ matrix.llvm_version }}.0"
     
       - name: Install missing LLVM deps # there is a shared lib error if this is missing
         run: sudo apt-get update && sudo apt-get install -y libtinfo5
@@ -37,7 +36,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --features llvm${{ env.LLVM_VERSION }}-0
+          args: --features llvm${{ matrix.llvm_version }}-0
 
   test:
     name: Test Suite
@@ -46,6 +45,7 @@ jobs:
       matrix:
         rust:
           - stable
+        llvm_version: [12, 13]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
@@ -56,10 +56,12 @@ jobs:
           toolchain: ${{ matrix.rust }}
           override: true
         
+      - uses: Swatinem/rust-cache@v1
+        
       - name: Install LLVM
         uses: KyleMayes/install-llvm-action@v1
         with:
-          version: "${{ env.LLVM_VERSION }}.0"
+          version: "${{ matrix.llvm_version }}.0"
     
       - name: Install missing LLVM deps # there is a shared lib error if this is missing
         run: sudo apt-get update && sudo apt-get install -y libtinfo5
@@ -68,7 +70,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --features llvm${{ env.LLVM_VERSION }}-0
+          args: --features llvm${{ matrix.llvm_version }}-0
 
   fmt:
     name: Rustfmt
@@ -86,6 +88,8 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           override: true
+      
+      - uses: Swatinem/rust-cache@v1
 
       - name: Install rustfmt
         run: rustup component add rustfmt
@@ -112,6 +116,8 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           override: true
+      
+      - uses: Swatinem/rust-cache@v1
 
       - name: Install clippy
         run: rustup component add clippy
@@ -119,7 +125,7 @@ jobs:
       - name: Install LLVM
         uses: KyleMayes/install-llvm-action@v1
         with:
-          version: "${{ env.LLVM_VERSION }}.0"
+          version: "${{ matrix.llvm_version }}.0"
 
       - name: Install missing LLVM deps # there is a shared lib error if this is missing
         run: sudo apt-get update && sudo apt-get install -y libtinfo5
@@ -128,7 +134,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --features llvm13-0 -- -D clippy::pedantic
+          args: --features llvm${{ matrix.llvm_version }}-0 -- -D clippy::pedantic
     
   build:
     name: Build
@@ -146,11 +152,13 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           override: true
+        
+      - uses: Swatinem/rust-cache@v1
 
       - name: Install LLVM
         uses: KyleMayes/install-llvm-action@v1
         with:
-          version: "${{ env.LLVM_VERSION }}.0"
+          version: "${{ matrix.llvm_version }}.0"
 
       - name: Install missing LLVM deps # there is a shared lib error if this is missing
         run: sudo apt-get update && sudo apt-get install -y libtinfo5
@@ -160,4 +168,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --bin qcs-sdk-qir --features llvm13-0
+          args: --bin qcs-sdk-qir --features llvm${{ matrix.llvm_version }}.0-0
