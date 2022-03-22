@@ -1,0 +1,44 @@
+on: [ push, pull_request ]
+
+name: CI (macos/linux)
+
+jobs:
+  build_test_fmt_clippy:
+    name: Build & Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        rust:
+          - stable
+        llvm_version: [12, 13]
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v2
+
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: ${{ matrix.rust }}
+        override: true
+
+    - name: Cache Rust environment
+      uses: Swatinem/rust-cache@v1
+
+    - name: Install LLVM
+      uses: KyleMayes/install-llvm-action@v1
+      with:
+        version: "${{ matrix.llvm_version }}.0"
+
+    - name: Install missing LLVM deps
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-key adv --keyserver hkps://keyserver.ubuntu.com --recv-key C99B11DEB97541F0
+        sudo apt-get update && sudo apt-get install -y libtinfo5
+
+    - name: Run cargo build, test, fmt, clippy
+      run: |
+        cargo build --features llvm${{ matrix.llvm_version }}-0
+        cargo test --features llvm${{ matrix.llvm_version }}-0
+        cargo fmt --all -- --check
+        cargo clippy --features llvm${{ matrix.llvm_version }}-0 -- -D clippy::pedantic
