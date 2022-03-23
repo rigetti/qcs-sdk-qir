@@ -88,7 +88,7 @@ fn main() {
                 context_options,
             );
 
-            shot_count_block::quil::transpile_module(&mut context).expect("transformation failed");
+            shot_count_block::qir::transpile_module(&mut context).expect("transformation failed");
 
             if add_main_entrypoint {
                 crate::interop::entrypoint::add_main_entrypoint(&mut context);
