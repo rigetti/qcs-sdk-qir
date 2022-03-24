@@ -1,0 +1,116 @@
+on: [ push, pull_request ]
+
+name: CI (windows)
+
+jobs:
+  build_test_fmt_clippy:
+    name: Build & Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: 
+          - windows-latest
+        rust:
+          - stable
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v2
+
+    - name: Install Rust Toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+          toolchain: stable
+          target: x86_64-pc-windows-msvc
+          override: true
+          components: rustfmt, clippy
+
+    - name: Cache Rust Environment
+      uses: Swatinem/rust-cache@v1
+
+    - name: Get System Info
+      uses: SimenB/github-actions-cpu-cores@v1
+      id: cpu-cores
+    
+    - name: Install LLVM
+      run: |
+        mkdir C:\Users\runneradmin\AppData\Roaming\llvmenv -ea 0
+        echo '[llvm-mirror]' >> C:\Users\runneradmin\AppData\Roaming\llvmenv\entry.toml
+        echo 'url    = "https://github.com/llvm-mirror/llvm"' >> C:\Users\runneradmin\AppData\Roaming\llvmenv\entry.toml
+        echo 'target = ["X86"]' >> C:\Users\runneradmin\AppData\Roaming\llvmenv\entry.toml
+
+        cat C:\Users\runneradmin\AppData\Roaming\llvmenv\entry.toml
+
+        cargo install llvmenv
+        llvmenv build-entry --build-type=release --nproc=${{ steps.cpu-cores.outputs.count }} 13.0.0
+
+        llvm-config --version
+
+    - name: Run cargo commands
+      run: |
+        cargo build --features llvm13-0
+        cargo test --features llvm13-0
+        cargo check --features llvm13-0
+        cargo fmt --features llvm13-0
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # - name: Setup MSYS2 Environment
+    #   uses: msys2/setup-msys2@v2
+    #   with:
+    #     msystem: mingw64
+    
+    # - name: Install Rust and LLVM
+    #   shell: msys2 {0}
+    #   run: |
+    #     pacman -Syu --noconfirm
+    #     pacman -S --needed base-devel mingw-w64-x86_64-toolchain --noconfirm
+    #     pacman -U https://mirror.msys2.org/mingw/mingw64/mingw-w64-x86_64-llvm-13.0.1-3-any.pkg.tar.zst --noconfirm
+    #     pacman -S mingw-w64-x86_64-rust --noconfirm
+        
+    #     # verify installations
+    #     cargo --version
+    #     llvm-config --version
+    #     rustc --version --verbose
+    #     # ls /mingw64/bin
+
+    #     # customize rust windows target
+    #     # echo '[target.x86_64-pc-windows-gnu]' >> %USERPROFILE%\.cargo\config.toml
+    #     # echo 'linker = "/mingw64/bin/gcc.exe"' >> %USERPROFILE%\.cargo\config.toml
+    #     # cat %USERPROFILE%\.cargo\config.toml
+
+    # - name: Cache Rust environment
+    #   uses: Swatinem/rust-cache@v1
+    
+    # - name: Run cargo build, test, fmt, clippy
+    #   shell: msys2 {0}
+    #   run: |
+    #     cargo build --features llvm13-0
+    #     cargo test --features llvm13-0
+    #     cargo fmt --all -- --check
+    #     cargo clippy --features llvm13-0 -- -D clippy::pedantic
