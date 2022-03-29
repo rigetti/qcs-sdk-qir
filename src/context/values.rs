@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use eyre::{eyre, Result};
 use inkwell::{
     builder::Builder,
     context::Context,
@@ -389,13 +390,12 @@ impl<'ctx> Values<'ctx> {
         module: &Module<'ctx>,
         types: &Types<'ctx>,
         target: &ExecutionTarget,
-    ) -> Self {
+    ) -> Result<Self> {
         // To create global values, the builder must be positioned inside a basic block even if it never writes within that basic block.
         // see https://github.com/TheDan64/inkwell/issues/32
         let basic_block = get_entry_function(module)
-            .expect("QIR expected entrypoint not found")
-            .get_first_basic_block()
-            .unwrap();
+            .and_then(|entry_function| entry_function.get_first_basic_block())
+            .ok_or_else(|| eyre!("QIR expected entrypoint not found"))?;
         builder.position_at_end(basic_block);
 
         let executable_cache = module.add_global(
@@ -411,7 +411,7 @@ impl<'ctx> Values<'ctx> {
             .const_zero();
         executable_cache.set_initializer(&initializer);
 
-        Self {
+        Ok(Self {
             executable_from_quil_function: build_executable_from_quil_function(
                 context, builder, module, types,
             ),
@@ -451,7 +451,7 @@ impl<'ctx> Values<'ctx> {
             free_executable_cache: build_free_executable_cache_function(
                 context, builder, module, types,
             ),
-        }
+        })
     }
 
     /// Get a reference to the values's panic on failure function.

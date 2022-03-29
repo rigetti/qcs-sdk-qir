@@ -12,8 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::convert::TryFrom;
+
 // Functions which operate on and extract information from `inkwell` `InstructionValue`s
 use either::Either;
+use eyre::{eyre, Result, WrapErr};
 use inkwell::{
     basic_block::BasicBlock,
     types::AnyTypeEnum,
@@ -22,22 +25,23 @@ use inkwell::{
         PhiValue, PointerValue,
     },
 };
-use std::convert::TryFrom;
 
 use crate::context::QCSCompilerContext;
 
-pub(crate) fn get_called_function_name(instruction: InstructionValue) -> Option<String> {
+pub(crate) fn get_called_function_name(instruction: InstructionValue) -> Result<Option<String>> {
     let intrinsic_function_target = instruction
         .get_operand(instruction.get_num_operands() - 1)
-        .expect("expected a final operand in Call instruction");
+        .ok_or_else(|| eyre!("expected a final operand in Call instruction"))?;
 
     match intrinsic_function_target {
-        Either::Left(BasicValueEnum::PointerValue(ptr_value)) => ptr_value
+        Either::Left(BasicValueEnum::PointerValue(ptr_value)) => Ok(ptr_value
             .get_name()
             .to_str()
             .ok()
-            .map(std::borrow::ToOwned::to_owned),
-        _ => todo!("BasicBlock target of function call"),
+            .map(std::borrow::ToOwned::to_owned)),
+        _ => Err(eyre!(
+            "BasicBlock target of function call is not yet implemented"
+        )),
     }
 }
 
@@ -53,7 +57,7 @@ pub(crate) enum OperationArgument<'ctx> {
 pub(crate) fn get_qis_function_arguments<'ctx>(
     context: &QCSCompilerContext,
     instruction: InstructionValue<'ctx>,
-) -> Vec<OperationArgument<'ctx>> {
+) -> Result<Vec<OperationArgument<'ctx>>> {
     let operand_count = instruction.get_num_operands();
 
     // The final operand of a call instruction is the function being called
@@ -61,50 +65,55 @@ pub(crate) fn get_qis_function_arguments<'ctx>(
         .map(|operand_index| {
             let target = instruction
                 .get_operand(operand_index)
-                .expect("expected a first operand in Call instruction");
+                .ok_or_else(|| eyre!("expected a first operand in Call instruction"))?;
             if let Either::Left(BasicValueEnum::PointerValue(ptr_value)) = target {
                 if let AnyTypeEnum::StructType(struct_type) =
                     ptr_value.get_type().get_element_type()
                 {
                     let type_name = struct_type
                         .get_name()
-                        .expect("expected struct type to have name");
+                        .ok_or_else(|| eyre!("expected struct type to have name"))?;
                     match type_name
                         .to_str()
-                        .expect("unable to convert C String to string")
+                        .wrap_err("unable to convert C String to string")?
                     {
                         "Qubit" => {
-                            let qubit_index = pointer_value_to_u64(context, ptr_value)
-                                .expect("qubit index must be a non-negative number");
+                            let qubit_index =
+                                pointer_value_to_u64(context, ptr_value).ok_or_else(|| {
+                                    eyre!("qubit index must be a non-negative number")
+                                })?;
                             OperationArgument::Qubit(qubit_index)
                         }
                         "Result" => {
                             let result_index = pointer_value_to_u64(context, ptr_value)
-                                .expect("unable to derive Result index from pointer");
+                                .ok_or_else(|| {
+                                    eyre!("unable to derive Result index from pointer")
+                                })?;
                             OperationArgument::Result(result_index)
                         }
-                        other => {
-                            todo!(
-                                "got unexpected type {} as argument to {:?}",
-                                other,
-                                instruction
-                            )
-                        }
+                        other => Err(eyre!(
+                            "got unexpected type {} as argument to {:?}",
+                            other,
+                            instruction
+                        )),
                     }
                 } else if let Some(inst) = ptr_value.as_instruction() {
                     OperationArgument::Instruction(inst)
                 } else {
-                    todo!(
+                    Err(eyre!(
                         "unexpected pointer value {:?} as operand {} of instruction {:?}",
                         ptr_value,
                         operand_index,
                         instruction
-                    )
+                    ))
                 }
             } else if let Either::Left(BasicValueEnum::FloatValue(value)) = target {
-                OperationArgument::Parameter(value)
+                Ok(OperationArgument::Parameter(value))
             } else {
-                todo!("non-pointer/float function argument in {:?}", instruction);
+                Err(eyre!(
+                    "non-pointer/float function argument in {:?}",
+                    instruction
+                ))
             }
         })
         .collect()
@@ -157,21 +166,24 @@ pub(crate) fn replace_conditional_branch_target(
     instruction: InstructionValue,
     replace_then: Option<&BasicBlock>,
     replace_else: Option<&BasicBlock>,
-) {
-    context
-        .builder
-        .position_at(instruction.get_parent().unwrap(), &instruction);
+) -> Result<()> {
+    context.builder.position_at(
+        instruction
+            .get_parent()
+            .ok_or_else(|| eyre!("Expected instruction to have a parent"))?,
+        &instruction,
+    );
 
     let original_then_block = if let Some(Either::Right(target)) = instruction.get_operand(2) {
         target
     } else {
-        panic!("expected basic block target for branch")
+        return Err(eyre!("expected basic block target for branch"));
     };
 
     let original_else_block = if let Some(Either::Right(target)) = instruction.get_operand(1) {
         target
     } else {
-        panic!("expected basic block target for branch")
+        return Err(eyre!("expected basic block target for branch"));
     };
 
     let (then_block, else_block) = (
@@ -184,7 +196,7 @@ pub(crate) fn replace_conditional_branch_target(
     {
         comparison
     } else {
-        panic!("expected integer comparison for branch")
+        return Err(eyre!("expected integer comparison for branch"));
     };
 
     let new_instruction =
@@ -193,6 +205,7 @@ pub(crate) fn replace_conditional_branch_target(
             .build_conditional_branch(comparison, *then_block, *else_block);
     instruction.replace_all_uses_with(&new_instruction);
     instruction.remove_from_basic_block();
+    Ok(())
 }
 
 /// Given a `phi` instruction, replace the existing matching block with the new one specified.
@@ -206,14 +219,19 @@ pub(crate) fn replace_phi_clause(
     old_basic_block: BasicBlock,
     new_basic_block: BasicBlock,
     reverse_match: bool,
-) {
-    let basic_block_parent = instruction.as_instruction().get_parent().unwrap();
+) -> Result<()> {
+    let basic_block_parent = instruction
+        .as_instruction()
+        .get_parent()
+        .ok_or_else(|| eyre!("Expected instruction to have a parent"))?;
 
     // We have to ensure that we're writing all phi instructions at the start of the basic block;
     // in LLVM IR no non-phi instructions may precede any phi instruction in the block.
-    context
-        .builder
-        .position_before(&basic_block_parent.get_first_instruction().unwrap());
+    context.builder.position_before(
+        &basic_block_parent
+            .get_first_instruction()
+            .ok_or_else(|| eyre!("Expected basic block to have at least one instruction"))?,
+    );
 
     let mut new_incoming: Vec<(BasicValueEnum, BasicBlock)> = vec![];
 
@@ -225,7 +243,9 @@ pub(crate) fn replace_phi_clause(
     // The trick is that get_incoming gives you an owned value but add_incoming wants a &dyn,
     // so you need to own the values somewhere long enough to be able to supply them to `add_incoming`.
     for index in 0..instruction.count_incoming() {
-        let value = instruction.get_incoming(index).unwrap();
+        let value = instruction
+            .get_incoming(index)
+            .ok_or_else(|| eyre!("Expected phi instruction to have incoming values"))?;
 
         if reverse_match ^ (value.1 == old_basic_block) {
             new_incoming.push((value.0, new_basic_block));
@@ -248,6 +268,7 @@ pub(crate) fn replace_phi_clause(
 
     instruction.replace_all_uses_with(&new_instruction);
     instruction.as_instruction().remove_from_basic_block();
+    Ok(())
 }
 
 /// Print each of the operands of an instruction in debug format to stdout on its own labeled line.

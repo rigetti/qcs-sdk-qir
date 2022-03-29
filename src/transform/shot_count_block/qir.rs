@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use eyre::{eyre, ContextCompat, Result};
 use inkwell::{
     basic_block::BasicBlock,
     values::{AnyValue, FunctionValue},
@@ -23,7 +24,6 @@ use crate::interop::instruction::{
     get_conditional_branch_else_target, remove_instructions_in_safe_order,
     replace_conditional_branch_target, replace_phi_clauses,
 };
-
 use crate::{context::QCSCompilerContext, interop::call, interop::entrypoint::get_entry_function};
 
 use super::pattern::ShotCountPatternMatchContext;
@@ -34,7 +34,7 @@ use super::PARAMETER_MEMORY_REGION_NAME;
 /// to as the "executable cache".
 pub(crate) fn build_populate_executable_cache_function<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
-) -> FunctionValue<'ctx> {
+) -> Result<FunctionValue<'ctx>> {
     let populate_executable_array_function_type =
         context.base_context.void_type().fn_type(&[], false);
     let populate_executable_array_function = context.module.add_function(
@@ -61,7 +61,7 @@ pub(crate) fn build_populate_executable_cache_function<'ctx>(
         )
         .try_as_basic_value()
         .left()
-        .expect("create_executable_cache does not have a return value")
+        .ok_or_else(|| eyre!("create_executable_cache does not have a return value"))?
         .into_pointer_value();
 
     context.builder.build_store(
@@ -100,21 +100,21 @@ pub(crate) fn build_populate_executable_cache_function<'ctx>(
 
     context.builder.build_return(None);
 
-    populate_executable_array_function
+    Ok(populate_executable_array_function)
 }
 
 /// Mutate a context such that all contiguous instructions which may be transpiled by `transpile_instruction`
 /// are inlined and executed using a shared library call.
 #[allow(dead_code)]
-pub(crate) fn transpile_module(context: &mut QCSCompilerContext) -> eyre::Result<()> {
-    let entrypoint_function =
-        get_entry_function(&context.module).expect("entrypoint not found in module");
+pub(crate) fn transpile_module(context: &mut QCSCompilerContext) -> Result<()> {
+    let entrypoint_function = get_entry_function(&context.module)
+        .ok_or_else(|| eyre!("entrypoint not found in module"))?;
     transpile_function(context, entrypoint_function, &[])?;
-    let populate_function = build_populate_executable_cache_function(context);
+    let populate_function = build_populate_executable_cache_function(context)?;
 
     let entry_basic_block = entrypoint_function
         .get_first_basic_block()
-        .ok_or(eyre::eyre!("entrypoint function has no basic blocks"))?;
+        .ok_or_else(|| eyre!("entrypoint function has no basic blocks"))?;
 
     match entry_basic_block.get_first_instruction() {
         Some(instruction) => context.builder.position_before(&instruction),
@@ -244,7 +244,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
                     .base_context
                     .i32_type()
                     .const_int(quil_program_index as u64, false),
-            )
+            )?
         } else {
             let program_text = program.to_string(true);
             let quil_program_global_string = unsafe {
@@ -267,10 +267,10 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
 
         let execution_result = match &context.target {
             crate::context::target::ExecutionTarget::Qpu(_) => {
-                call::execute_on_qpu(context, &executable)
+                call::execute_on_qpu(context, &executable)?
             }
             crate::context::target::ExecutionTarget::Qvm => {
-                call::execute_on_qvm(context, &executable)
+                call::execute_on_qvm(context, &executable)?
             }
         };
 
@@ -285,33 +285,39 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
             basic_block,
             &pattern_context
                 .initial_instruction
-                .unwrap()
-                .get_next_instruction()
-                .unwrap(),
+                .and_then(|i| i.get_next_instruction())
+                .ok_or_else(|| eyre!("Expected an initial instruction"))?,
         );
 
         let shot_index = pattern_context
             .initial_instruction
-            .unwrap()
+            .ok_or_else(|| eyre!("Expected an initial instruction"))?
             .as_any_value_enum()
             .into_int_value();
 
         for (readout_index, instruction) in &pattern_context.readout_instruction_mapping {
             let new_instruction =
-                call::get_readout_bit(context, &execution_result, shot_index, *readout_index);
+                call::get_readout_bit(context, &execution_result, shot_index, *readout_index)?;
 
-            instruction.replace_all_uses_with(&new_instruction.as_instruction().unwrap());
+            instruction.replace_all_uses_with(
+                &new_instruction
+                    .as_instruction()
+                    .ok_or_else(|| eyre!("Expected an instruction"))?,
+            )
         }
 
         let cleanup_basic_block = context.base_context.insert_basic_block_after(
             basic_block,
-            format!("{}_cleanup", basic_block.get_name().to_str().unwrap()).as_str(),
+            format!("{}_cleanup", basic_block.get_name().to_str()?).as_str(),
         );
 
         // Record which block was originally the target following execution & processing of shots in this block
-        let original_next_block =
-            get_conditional_branch_else_target(basic_block.get_terminator().unwrap())
-                .expect("expected the basic block to have a conditional 'else' target");
+        let original_next_block = get_conditional_branch_else_target(
+            basic_block
+                .get_terminator()
+                .ok_or_else(|| eyre!("Expected a terminator"))?,
+        )
+        .wrap_err("expected the basic block to have a conditional 'else' target")?;
 
         context.builder.position_at_end(cleanup_basic_block);
         call::free_execution_result(context, &execution_result);
@@ -321,7 +327,9 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
 
         replace_conditional_branch_target(
             context,
-            basic_block.get_terminator().unwrap(),
+            basic_block
+                .get_terminator()
+                .ok_or_else(|| eyre!("Expected a terminator"))?,
             Some(&basic_block),
             Some(&cleanup_basic_block),
         );
@@ -358,9 +366,10 @@ mod test {
     use super::*;
 
     mod can_transpile_program_with {
-        use super::*;
         use crate::context::context::{ContextOptions, QCSCompilerContext};
         use crate::context::target::ExecutionTarget;
+
+        use super::*;
 
         macro_rules! make_snapshot_test {
             ($name:ident) => {

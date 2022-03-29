@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use eyre::{eyre, Result};
 use inkwell::module::Module;
 use inkwell::values::FunctionValue;
 
@@ -35,7 +36,7 @@ pub(crate) fn get_alternate_entry_function<'ctx>(
 
 /// Mutate the context to add a `main` function as an entrypoint for `x86_64`, which
 /// itself calls the QIR standard entrypoint.
-pub(crate) fn add_main_entrypoint(context: &mut QCSCompilerContext) {
+pub(crate) fn add_main_entrypoint(context: &mut QCSCompilerContext) -> Result<()> {
     let main_function = context.module.add_function(
         "main",
         context.base_context.i32_type().fn_type(&[], false),
@@ -46,8 +47,8 @@ pub(crate) fn add_main_entrypoint(context: &mut QCSCompilerContext) {
         .append_basic_block(main_function, "entry");
     context.builder.position_at_end(entry);
 
-    let qir_entrypoint =
-        get_entry_function(&context.module).expect("QIR expected entrypoint not found");
+    let qir_entrypoint = get_entry_function(&context.module)
+        .ok_or_else(|| eyre!("QIR expected entrypoint not found"))?;
 
     context.builder.build_call(qir_entrypoint, &[], "");
     context
