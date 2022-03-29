@@ -372,7 +372,7 @@ mod test {
                     let mut context = QCSCompilerContext::new_from_file(
                         &base_context,
                         "qcs",
-                        format!("test/fixtures/programs/{}.bc", stringify!($name)).as_str(),
+                        format!("tests/fixtures/programs/{}.bc", stringify!($name)).as_str(),
                         ExecutionTarget::Qvm,
                         ContextOptions {
                             cache_executables: false,
