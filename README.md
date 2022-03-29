@@ -110,12 +110,16 @@ entry:
 
 ## Setup
 
-This crate has the following external dependencies:
+In order to build this crate, a supported LLVM version installed and available on your `PATH` (you must be able to run `llvm-config`). The supported versions are listed in `Cargo.toml` under `[features]`.
 
-* [cargo-make](https://github.com/sagiegurari/cargo-make) as a task runner - install that with `cargo install cargo-make`.
-* A supported LLVM version installed and available on your `PATH`. If you can't run `llvm-config`, then you will be unable to build this crate. The supported versions are listed in `Cargo.toml` under `[features]`.
+Build the CLI using `cargo build --bin qcs-sdk-qir --features llvm13-0`.
+
+### Extra Dependencies for [Full QIR Conversion](#transform-qir)
+
+> These are not required if only [transforming unitary QIR to Quil](#transpile-qir-to-quil).
+
 * A C compiler, such as `gcc` or `clang`, which supports LLVM 11 at a minimum. For OSX users, this means XCode version >= 12.5.
-* The QCS SDK shared library, which may be built or downloaded as described [here](https://github.com/rigetti/qcs-sdk-c).
+* The QCS SDK shared library, which may be built or downloaded as described [here](https://github.com/rigetti/qcs-sdk-c). 
 
 You'll also need to compile the shared "helper" library contained in the `helper` directory. This small shared library is used to reduce the complexity required within this crate's LLVM transformations.
 
@@ -137,8 +141,9 @@ export DYLD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/qcs-sdk-qir/helper
 export PATH=$PATH:/path/to/qcs-sdk-qir/helper
 ```
 
+### Development Dependencies
 
-Build the CLI using `cargo build --bin qcs-sdk-qir --features llvm13-0`.
+[cargo-make](https://github.com/sagiegurari/cargo-make) is used as a task runner - install that with `cargo install cargo-make`.
 
 ## Transform QIR
 
@@ -232,6 +237,8 @@ error: No suitable version of LLVM was found system-wide or pointed
 First, make sure you do in fact have the same LLVM version installed and on your `PATH` as you've specified with the `--features` option in `cargo`. Run `llvm-config --version` to confirm. If not, that needs fixing first.
 
 If you do, perhaps you first tried to build the crate before LLVM was installed and configured. Run `cargo clean -p llvm-sys` to clear the build and then retry.
+
+You may also want to try setting the `LLVM_SYS_<version>_PREFIX` environment variable to point to the LLVM installation you want to use. For example, if you've installed LLVM 13 via Homebrew on macOS, try `export LLVM_SYS_130_PREFIX=/usr/local/opt/llvm`.
 
 ### gcc compilation error: ld: library not found for -lhelper
 
