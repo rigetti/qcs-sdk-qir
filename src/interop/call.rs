@@ -21,7 +21,7 @@ use inkwell::{
 use crate::context::QCSCompilerContext;
 
 #[allow(dead_code)]
-pub(crate) fn printf<'ctx>(context: &'ctx mut QCSCompilerContext<'ctx>, string: PointerValue) {
+pub(crate) fn printf<'ctx>(context: &mut QCSCompilerContext<'ctx>, string: PointerValue) {
     let string_type = context.types.string();
     let printf_type = context
         .base_context
