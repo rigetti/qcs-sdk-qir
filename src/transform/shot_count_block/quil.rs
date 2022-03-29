@@ -24,8 +24,11 @@ use super::pattern::ShotCountPatternMatchContext;
 use super::PARAMETER_MEMORY_REGION_NAME;
 
 /// Encapsulates the result of transpiling a QIR module to a Quil program
+#[derive(Debug)]
 pub struct ProgramOutput {
+    /// The Quil program itself
     pub program: quil_rs::Program,
+    /// The number of shots to run the program for, extracted from the primary execution loop
     pub shot_count: u64,
 }
 
@@ -177,16 +180,19 @@ mod test {
                     let _ = env_logger::builder().is_test(true).try_init();
 
                     let base_context = inkwell::context::Context::create();
-                    let mut context = QCSCompilerContext::new_from_file(
+                    let data =
+                        std::fs::read(format!("tests/fixtures/programs/{}.bc", stringify!($name)))
+                            .unwrap();
+                    let mut context = QCSCompilerContext::new_from_data(
                         &base_context,
-                        "qcs",
-                        format!("tests/fixtures/programs/{}.bc", stringify!($name)).as_str(),
+                        &data,
                         ExecutionTarget::Qvm,
                         ContextOptions {
                             cache_executables: false,
                             rewiring_pragma: None,
                         },
-                    );
+                    )
+                    .unwrap();
                     let result = transpile_module(&mut context).expect("transpilation failed");
 
                     insta::assert_snapshot!(result.program.to_string(true));

@@ -369,16 +369,19 @@ mod test {
                     let _ = env_logger::builder().is_test(true).try_init();
 
                     let base_context = inkwell::context::Context::create();
-                    let mut context = QCSCompilerContext::new_from_file(
+                    let data =
+                        std::fs::read(format!("tests/fixtures/programs/{}.bc", stringify!($name)))
+                            .unwrap();
+                    let mut context = QCSCompilerContext::new_from_data(
                         &base_context,
-                        "qcs",
-                        format!("tests/fixtures/programs/{}.bc", stringify!($name)).as_str(),
+                        &data,
                         ExecutionTarget::Qvm,
                         ContextOptions {
                             cache_executables: false,
                             rewiring_pragma: None,
                         },
-                    );
+                    )
+                    .unwrap();
                     transpile_module(&mut context).expect("transpilation failed");
 
                     insta::assert_snapshot!(context.module.print_to_string().to_str().unwrap());

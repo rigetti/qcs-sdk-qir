@@ -1,0 +1,5 @@
+---
+source: tests/public_lib_api.rs
+expression: output.shot_count
+---
+42

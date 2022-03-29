@@ -66,43 +66,43 @@ pub(crate) struct ShotCountPatternMatchContext<'ctx> {
     // pub loop_initializer: Option<InstructionValue<'ctx>>,
     /// Hash of the instruction used to initialize the shot count value.
     /// By using the hash, we don't need to maintain a reference to the instruction itself.
-    pub initial_instruction: Option<InstructionValue<'ctx>>,
+    pub(crate) initial_instruction: Option<InstructionValue<'ctx>>,
 
     /// Hash of the instruction used to initialize the shot count value.
     /// By using the hash, we don't need to maintain a reference to the instruction itself.
-    pub initial_instruction_hash: Option<u64>,
+    pub(crate) initial_instruction_hash: Option<u64>,
 
     /// The quil program transpiled from quantum intrinsics
-    pub quil_program: quil_rs::Program,
+    pub(crate) quil_program: quil_rs::Program,
 
     /// The shot count inferred from the loop instructions
-    pub shot_count: Option<u64>,
+    pub(crate) shot_count: Option<u64>,
 
     /// A list of instructions to remove from the program (for substitution with Quil)
-    pub instructions_to_remove: Vec<InstructionValue<'ctx>>,
+    pub(crate) instructions_to_remove: Vec<InstructionValue<'ctx>>,
 
     /// The terminating instruction to append to the BasicBlock in place of a conditional
     /// branch on shot count
-    pub next_basic_block: Option<BasicBlock<'ctx>>,
+    pub(crate) next_basic_block: Option<BasicBlock<'ctx>>,
 
     /// Mapping of (read_result *Result index)->(ro memory region index)
-    pub read_result_mapping: HashMap<u64, u64>,
+    pub(crate) read_result_mapping: HashMap<u64, u64>,
 
     /// Pairings of (readout buffer index/offset) with the instruction which stores that readout value.
-    pub readout_instruction_mapping: Vec<(u64, InstructionValue<'ctx>)>,
+    pub(crate) readout_instruction_mapping: Vec<(u64, InstructionValue<'ctx>)>,
 
     // All FloatValues used as instruction parameters. Indices within this Vec map to indices within the Quil
     // MemoryRegion used to read the values at runtime.
-    pub parameters: Vec<FloatValue<'ctx>>,
+    pub(crate) parameters: Vec<FloatValue<'ctx>>,
 
     /// Whether or not to prepend a RESET instruction to the program to actively reset all qubits on each shot
-    pub use_active_reset: bool,
+    pub(crate) use_active_reset: bool,
 }
 
 impl<'ctx> ShotCountPatternMatchContext<'ctx> {
     /// If the program contains any executable instructions (gates, pulses, etc) and a shot count has been inferred,
     /// return that information; otherwise, return `None` indicating that the pattern was not matched.
-    pub fn get_program_data(&self) -> Option<(&quil_rs::Program, u64)> {
+    pub(crate) fn get_program_data(&self) -> Option<(&quil_rs::Program, u64)> {
         if let Some(shots) = self.shot_count {
             if self.quil_program.to_instructions(false).is_empty() {
                 None
@@ -123,7 +123,7 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
     /// * `visited_functions`: list of function names which have already been transpiled. Used to prevent recursion loops.
     /// * `function_call_callback`: callback to be invoked when a function call is found within the block, in order to recursively
     ///    transpile an LLVM module.
-    pub fn from_basic_block(
+    pub(crate) fn from_basic_block(
         context: &mut QCSCompilerContext<'ctx>,
         basic_block: BasicBlock<'ctx>,
         visited_functions: &[&str],

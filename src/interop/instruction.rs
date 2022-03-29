@@ -42,7 +42,7 @@ pub(crate) fn get_called_function_name(instruction: InstructionValue) -> Option<
 }
 
 #[derive(Debug)]
-pub enum OperationArgument<'ctx> {
+pub(crate) enum OperationArgument<'ctx> {
     Qubit(u64),
     Result(u64),
     Parameter(FloatValue<'ctx>),

@@ -21,7 +21,7 @@ use inkwell::{
 use crate::context::QCSCompilerContext;
 
 #[allow(dead_code)]
-pub(crate) fn printf<'ctx>(context: &mut QCSCompilerContext<'ctx>, string: PointerValue) {
+pub(crate) fn printf<'ctx>(context: &'ctx mut QCSCompilerContext<'ctx>, string: PointerValue) {
     let string_type = context.types.string();
     let printf_type = context
         .base_context
@@ -39,7 +39,7 @@ pub(crate) fn printf<'ctx>(context: &mut QCSCompilerContext<'ctx>, string: Point
     );
 }
 
-pub(crate) struct Executable<'ctx>(pub PointerValue<'ctx>);
+pub(crate) struct Executable<'ctx>(pub(crate) PointerValue<'ctx>);
 
 #[allow(dead_code)]
 pub(crate) fn executable_from_quil<'ctx>(
@@ -62,7 +62,7 @@ pub(crate) fn executable_from_quil<'ctx>(
     )
 }
 
-pub struct ExecutionResult<'ctx>(PointerValue<'ctx>);
+pub(crate) struct ExecutionResult<'ctx>(PointerValue<'ctx>);
 
 pub(crate) fn execute_on_qpu<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,

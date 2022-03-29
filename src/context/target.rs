@@ -15,7 +15,7 @@
 use std::str::FromStr;
 
 #[derive(Debug)]
-pub(crate) enum ExecutionTarget {
+pub enum ExecutionTarget {
     Qpu(String),
     Qvm,
 }

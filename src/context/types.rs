@@ -22,7 +22,7 @@ fn build_string_type(context: &Context) -> PointerType {
     context.i8_type().ptr_type(AddressSpace::Generic)
 }
 
-pub struct Types<'ctx> {
+pub(crate) struct Types<'ctx> {
     string: PointerType<'ctx>,
     executable: StructType<'ctx>,
     executable_cache: StructType<'ctx>,
@@ -30,19 +30,19 @@ pub struct Types<'ctx> {
 }
 
 impl<'ctx> Types<'ctx> {
-    pub fn executable(&self) -> StructType<'ctx> {
+    pub(crate) fn executable(&self) -> StructType<'ctx> {
         self.executable
     }
 
-    pub fn executable_cache(&self) -> StructType<'ctx> {
+    pub(crate) fn executable_cache(&self) -> StructType<'ctx> {
         self.executable_cache
     }
 
-    pub fn execution_result(&self) -> StructType<'ctx> {
+    pub(crate) fn execution_result(&self) -> StructType<'ctx> {
         self.execution_result
     }
 
-    pub fn new(context: &'ctx Context) -> Self {
+    pub(crate) fn new(context: &'ctx Context) -> Self {
         let execution_result = context.opaque_struct_type("ExecutionResult");
         let executable = context.opaque_struct_type("Executable");
         let executable_cache = context.opaque_struct_type("ExecutableCache");
@@ -55,7 +55,7 @@ impl<'ctx> Types<'ctx> {
         }
     }
 
-    pub fn string(&self) -> PointerType<'ctx> {
+    pub(crate) fn string(&self) -> PointerType<'ctx> {
         self.string
     }
 }

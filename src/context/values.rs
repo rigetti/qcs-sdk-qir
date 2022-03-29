@@ -364,26 +364,26 @@ pub(crate) struct Values<'ctx> {
 impl<'ctx> Values<'ctx> {
     /// Get a reference to the values's executable from quil function.
     #[allow(dead_code)]
-    pub fn executable_from_quil_function(&self) -> FunctionValue<'ctx> {
+    pub(crate) fn executable_from_quil_function(&self) -> FunctionValue<'ctx> {
         self.executable_from_quil_function
     }
 
     /// Get a reference to the values's execute on qpu function.
-    pub fn execute_on_qpu_function(&self) -> FunctionValue<'ctx> {
+    pub(crate) fn execute_on_qpu_function(&self) -> FunctionValue<'ctx> {
         self.execute_on_qpu_function
     }
 
     /// Get a reference to the values's execute on qvm function.
-    pub fn execute_on_qvm_function(&self) -> FunctionValue<'ctx> {
+    pub(crate) fn execute_on_qvm_function(&self) -> FunctionValue<'ctx> {
         self.execute_on_qvm_function
     }
 
     /// Get a reference to the values's get readout bit function.
-    pub fn get_readout_bit_function(&self) -> FunctionValue<'ctx> {
+    pub(crate) fn get_readout_bit_function(&self) -> FunctionValue<'ctx> {
         self.get_readout_bit_function
     }
 
-    pub fn new(
+    pub(crate) fn new(
         context: &'ctx Context,
         builder: &Builder<'ctx>,
         module: &Module<'ctx>,
@@ -455,27 +455,27 @@ impl<'ctx> Values<'ctx> {
     }
 
     /// Get a reference to the values's panic on failure function.
-    pub fn panic_on_failure_function(&self) -> FunctionValue<'ctx> {
+    pub(crate) fn panic_on_failure_function(&self) -> FunctionValue<'ctx> {
         self.panic_on_failure_function
     }
 
     /// Get a reference to the values's parameter memory region name.
-    pub fn parameter_memory_region_name(&self) -> PointerValue<'ctx> {
+    pub(crate) fn parameter_memory_region_name(&self) -> PointerValue<'ctx> {
         self.parameter_memory_region_name
     }
 
     /// Get a reference to the values's quantum processor id.
-    pub fn quantum_processor_id(&self) -> Option<PointerValue<'ctx>> {
+    pub(crate) fn quantum_processor_id(&self) -> Option<PointerValue<'ctx>> {
         self.quantum_processor_id
     }
 
     /// Get a reference to the values's set param function.
-    pub fn set_param_function(&self) -> FunctionValue<'ctx> {
+    pub(crate) fn set_param_function(&self) -> FunctionValue<'ctx> {
         self.set_param_function
     }
 
     /// Get a reference to the values's wrap in shots function.
-    pub fn wrap_in_shots_function(&self) -> FunctionValue<'ctx> {
+    pub(crate) fn wrap_in_shots_function(&self) -> FunctionValue<'ctx> {
         self.wrap_in_shots_function
     }
 
