@@ -32,6 +32,6 @@ Caused by:
     no basic block named 'body' found in function
 
 Location:
-    /Users/danthony/.cargo/registry/src/github.com-1ecc6299db9ec823/eyre-0.6.6/src/lib.rs:1164:13
+    [..]
 
 ```
