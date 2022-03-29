@@ -25,6 +25,7 @@ structopt = "0.3.21"
 
 [dev-dependencies]
 insta = "1.8.0"
+trycmd = "0.13.3"
 
 [features]
 llvm12-0 = ["inkwell/llvm12-0"]
