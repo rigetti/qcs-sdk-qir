@@ -518,6 +518,32 @@ pub(crate) fn quantum_instruction<'ctx>(
                             pattern_context.use_active_reset = true;
                             true
                         }
+                        "rx" => {
+                            add_gate_instruction(
+                                pattern_context,
+                                &arguments,
+                                &function_name,
+                                "RX",
+                                adjoint,
+                                controlled,
+                                1,
+                                1,
+                            );
+                            true
+                        }
+                        "ry" => {
+                            add_gate_instruction(
+                                pattern_context,
+                                &arguments,
+                                &function_name,
+                                "RY",
+                                adjoint,
+                                controlled,
+                                1,
+                                1,
+                            );
+                            true
+                        }
                         "rz" => {
                             add_gate_instruction(
                                 pattern_context,
