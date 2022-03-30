@@ -19,6 +19,7 @@ use std::{
     convert::TryFrom,
     hash::{Hash, Hasher},
 };
+
 use either::Either;
 use eyre::{eyre, Result, WrapErr};
 use inkwell::{
@@ -34,11 +35,6 @@ use quil_rs::{
     instruction::{GateModifier, MemoryReference, Qubit},
 };
 use regex::Regex;
-use std::{
-    collections::{hash_map::DefaultHasher, HashMap},
-    convert::TryFrom,
-    hash::{Hash, Hasher},
-};
 
 use crate::{
     context::QCSCompilerContext,
