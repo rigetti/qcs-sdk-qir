@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 
 // Functions which operate on and extract information from `inkwell` `InstructionValue`s
 use either::Either;
@@ -296,7 +296,9 @@ pub(crate) fn replace_phi_clauses(
         if current_instruction.get_opcode() == InstructionOpcode::Phi {
             replace_phi_clause(
                 context,
-                current_instruction.as_phi_value(),
+                current_instruction
+                    .try_into()
+                    .map_err(|_| eyre!("Expected phi instruction"))?,
                 old_basic_block,
                 new_basic_block,
                 reverse_match,
