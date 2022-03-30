@@ -21,7 +21,7 @@ log = "0.4.14"
 num-complex = "*"
 quil-rs = "0.8.5"
 regex = "1.5.4"
-structopt = "0.3.21"
+clap = { version = "3.1.6", features = ["derive"] }
 
 [dev-dependencies]
 insta = "1.8.0"
