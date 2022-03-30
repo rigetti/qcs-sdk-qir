@@ -16,28 +16,28 @@
 
 use std::path::PathBuf;
 
+use clap::Parser;
 use eyre::Result;
-use structopt::StructOpt;
 
 use qcs_sdk_qir::{ExecutionTarget, PatchOptions};
 
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 #[structopt(name = "QIRQuilTranslator", about = "Translate QIR to Quil")]
 enum QcsQirCli {
-    #[structopt(
+    #[clap(
         name = "transform",
         about = "Given an LLVM bitcode file, replace quantum intrinsics with calls to execute equivalent Quil on Rigetti QCS"
     )]
     Transform {
         llvm_bitcode_path: PathBuf,
 
-        #[structopt(parse(from_os_str))]
+        #[clap(parse(from_os_str))]
         bitcode_out: Option<PathBuf>,
 
-        #[structopt(long)]
+        #[clap(long)]
         add_main_entrypoint: bool,
 
-        #[structopt(
+        #[clap(
             name = "target",
             long,
             default_value = "qvm",
@@ -45,10 +45,10 @@ enum QcsQirCli {
         )]
         execution_target: ExecutionTarget,
 
-        #[structopt(long)]
+        #[clap(long)]
         cache_executables: bool,
 
-        #[structopt(long)]
+        #[clap(long)]
         quil_rewiring_pragma: Option<String>,
     },
     #[structopt(
@@ -61,7 +61,7 @@ enum QcsQirCli {
 fn main() -> Result<()> {
     env_logger::init();
 
-    let opt = QcsQirCli::from_args();
+    let opt = QcsQirCli::parse();
     match opt {
         QcsQirCli::Transform {
             add_main_entrypoint,
