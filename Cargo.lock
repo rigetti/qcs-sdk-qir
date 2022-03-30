@@ -330,7 +330,7 @@ dependencies = [
 [[package]]
 name = "inkwell"
 version = "0.1.0"
-source = "git+https://github.com/kalzoo/inkwell?branch=274-instruction-to-phi#629d1a2267f4ece122fdce5125ba2253ca9313eb"
+source = "git+https://github.com/rigetti/inkwell?branch=274-instruction-to-phi#629d1a2267f4ece122fdce5125ba2253ca9313eb"
 dependencies = [
  "either",
  "inkwell_internals",
@@ -344,7 +344,7 @@ dependencies = [
 [[package]]
 name = "inkwell_internals"
 version = "0.5.0"
-source = "git+https://github.com/kalzoo/inkwell?branch=274-instruction-to-phi#629d1a2267f4ece122fdce5125ba2253ca9313eb"
+source = "git+https://github.com/rigetti/inkwell?branch=274-instruction-to-phi#629d1a2267f4ece122fdce5125ba2253ca9313eb"
 dependencies = [
  "proc-macro2",
  "quote",
