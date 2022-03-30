@@ -1,3 +1,5 @@
+#![deny(clippy::pedantic)]
+
 // Copyright 2022 Rigetti Computing
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,6 +31,9 @@ pub(crate) mod interop;
 pub(crate) mod transform;
 
 /// Given an LLVM bitcode, replace quantum intrinsics with calls to execute equivalent Quil on Rigetti QCS
+///
+/// # Errors
+/// 1. Returns a [`eyre::Report`] with human readable messages if the compilation fails.
 pub fn patch_qir_with_qcs<'ctx>(
     options: PatchOptions,
     bitcode: &[u8],
@@ -63,6 +68,10 @@ pub struct PatchOptions {
 
 /// Transpile the given QIR bitcode into the equivalent Quil program, extracting the shot count from
 /// the main program loop.
+///
+///
+/// # Errors
+/// 1. Returns a [`eyre::Report`] with human readable messages if the transpilation fails.
 pub fn transpile_qir_to_quil(bitcode: &[u8]) -> Result<ProgramOutput> {
     let context = inkwell::context::Context::create();
     let mut context = QCSCompilerContext::new_from_data(

@@ -15,6 +15,7 @@
 use std::str::FromStr;
 
 #[derive(Debug)]
+#[allow(clippy::module_name_repetitions)]
 pub enum ExecutionTarget {
     Qpu(String),
     Qvm,

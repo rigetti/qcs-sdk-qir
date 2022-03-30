@@ -394,7 +394,7 @@ impl<'ctx> Values<'ctx> {
         // To create global values, the builder must be positioned inside a basic block even if it never writes within that basic block.
         // see https://github.com/TheDan64/inkwell/issues/32
         let basic_block = get_entry_function(module)
-            .and_then(|entry_function| entry_function.get_first_basic_block())
+            .and_then(FunctionValue::get_first_basic_block)
             .ok_or_else(|| eyre!("QIR expected entrypoint not found"))?;
         builder.position_at_end(basic_block);
 

@@ -36,9 +36,13 @@ jobs:
         sudo apt-key adv --keyserver hkps://keyserver.ubuntu.com --recv-key C99B11DEB97541F0
         sudo apt-get update && sudo apt-get install -y libtinfo5
 
+    - name: Install cargo-make
+      uses: actions-rs/cargo@v1
+      with:
+        command: install
+        args: --debug cargo-make
+
     - name: Run cargo build, test, fmt, clippy
-      run: |
-        cargo build --features llvm${{ matrix.llvm_version }}-0
-        cargo test --features llvm${{ matrix.llvm_version }}-0
-        cargo fmt --all -- --check
-        cargo clippy --features llvm${{ matrix.llvm_version }}-0 -- -D clippy::pedantic
+      env:
+        LLVM_FEATURE: llvm${{ matrix.llvm_version }}-0
+      run: cargo make ci-flow

@@ -15,7 +15,7 @@
 use eyre::{eyre, ContextCompat, Result};
 use inkwell::{
     basic_block::BasicBlock,
-    values::{AnyValue, FunctionValue},
+    values::{AnyValue, FunctionValue, InstructionValue},
 };
 use log::{debug, info};
 use quil_rs::instruction::Vector;
@@ -285,7 +285,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
             basic_block,
             &pattern_context
                 .initial_instruction
-                .and_then(|i| i.get_next_instruction())
+                .and_then(InstructionValue::get_next_instruction)
                 .ok_or_else(|| eyre!("Expected an initial instruction"))?,
         );
 
@@ -303,7 +303,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
                 &new_instruction
                     .as_instruction()
                     .ok_or_else(|| eyre!("Expected an instruction"))?,
-            )
+            );
         }
 
         let cleanup_basic_block = context.base_context.insert_basic_block_after(
