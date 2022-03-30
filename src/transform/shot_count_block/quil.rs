@@ -37,8 +37,8 @@ pub struct ProgramOutput {
 /// from a program loop counter.
 #[allow(dead_code)]
 pub(crate) fn transpile_module(context: &mut QCSCompilerContext) -> Result<ProgramOutput> {
-    let entrypoint_function =
-        get_entry_function(&context.module).ok_or_else(|| eyre!("entrypoint not found in module"))?;
+    let entrypoint_function = get_entry_function(&context.module)
+        .ok_or_else(|| eyre!("entrypoint not found in module"))?;
     transpile_function(context, entrypoint_function, &[])
 }
 
