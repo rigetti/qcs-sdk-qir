@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use eyre::{eyre, ContextCompat, Result};
+use eyre::{eyre, Result};
 use inkwell::{
     module::Linkage,
     types::BasicMetadataTypeEnum,
@@ -46,7 +46,7 @@ pub(crate) struct Executable<'ctx>(pub(crate) PointerValue<'ctx>);
 pub(crate) fn executable_from_quil<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     quil: PointerValue<'ctx>,
-) -> Executable<'ctx> {
+) -> Result<Executable<'ctx>> {
     let string_type = context.types.string();
     let executable_call_site_value = context.builder.build_call(
         context.values.executable_from_quil_function(),
@@ -55,13 +55,13 @@ pub(crate) fn executable_from_quil<'ctx>(
         )],
         "",
     );
-    Executable(
+    Ok(Executable(
         executable_call_site_value
             .try_as_basic_value()
             .left()
-            .ok_or_else(|| eyre!("expected basic value"))
+            .ok_or_else(|| eyre!("expected basic value"))?
             .into_pointer_value(),
-    )
+    ))
 }
 
 pub(crate) struct ExecutionResult<'ctx>(PointerValue<'ctx>);

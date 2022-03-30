@@ -54,4 +54,5 @@ pub(crate) fn add_main_entrypoint(context: &mut QCSCompilerContext) -> Result<()
     context
         .builder
         .build_return(Some(&context.base_context.i32_type().const_int(0, false)));
+    Ok(())
 }

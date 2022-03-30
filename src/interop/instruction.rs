@@ -82,14 +82,14 @@ pub(crate) fn get_qis_function_arguments<'ctx>(
                                 pointer_value_to_u64(context, ptr_value).ok_or_else(|| {
                                     eyre!("qubit index must be a non-negative number")
                                 })?;
-                            OperationArgument::Qubit(qubit_index)
+                            Ok(OperationArgument::Qubit(qubit_index))
                         }
                         "Result" => {
                             let result_index = pointer_value_to_u64(context, ptr_value)
                                 .ok_or_else(|| {
                                     eyre!("unable to derive Result index from pointer")
                                 })?;
-                            OperationArgument::Result(result_index)
+                            Ok(OperationArgument::Result(result_index))
                         }
                         other => Err(eyre!(
                             "got unexpected type {} as argument to {:?}",
@@ -98,7 +98,7 @@ pub(crate) fn get_qis_function_arguments<'ctx>(
                         )),
                     }
                 } else if let Some(inst) = ptr_value.as_instruction() {
-                    OperationArgument::Instruction(inst)
+                    Ok(OperationArgument::Instruction(inst))
                 } else {
                     Err(eyre!(
                         "unexpected pointer value {:?} as operand {} of instruction {:?}",
@@ -287,7 +287,7 @@ pub(crate) fn replace_phi_clauses(
     old_basic_block: BasicBlock,
     new_basic_block: BasicBlock,
     reverse_match: bool,
-) {
+) -> Result<()> {
     let mut instruction = within_basic_block.get_first_instruction();
 
     while let Some(current_instruction) = instruction {
@@ -300,10 +300,11 @@ pub(crate) fn replace_phi_clauses(
                 old_basic_block,
                 new_basic_block,
                 reverse_match,
-            );
+            )?;
         }
         instruction = next_instruction;
     }
+    Ok(())
 }
 
 /// Remove instructions in topological order such that none is removed while any other instruction uses it.

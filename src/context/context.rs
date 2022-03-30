@@ -39,7 +39,7 @@ impl<'ctx> QCSCompilerContext<'ctx> {
         let builder = context.create_builder();
         let module = load_module_from_bitcode(context, data)?;
         let types = Types::new(context);
-        let values = Values::new(context, &builder, &module, &types, &target);
+        let values = Values::new(context, &builder, &module, &types, &target)?;
 
         Ok(Self {
             base_context: context,

@@ -14,6 +14,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::{
+    collections::{hash_map::DefaultHasher, HashMap},
+    convert::TryFrom,
+    hash::{Hash, Hasher},
+};
 use either::Either;
 use eyre::{eyre, Result, WrapErr};
 use inkwell::{
@@ -174,13 +179,13 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
                     continue;
                 }
             } else if let Some((pattern_instruction, _)) =
-                quantum_instruction(context, &mut pattern_context, instruction)
+                quantum_instruction(context, &mut pattern_context, instruction)?
             {
                 debug!("matched quantum instruction: {:?}", instruction);
                 next_instruction = pattern_instruction;
                 continue;
             } else if let Some((_, _)) =
-                shot_count_loop_end(context, &mut pattern_context, instruction)
+                shot_count_loop_end(context, &mut pattern_context, instruction)?
             {
                 debug!("matched shot count end: {:?}", instruction);
                 break;
@@ -268,18 +273,19 @@ pub(crate) fn shot_count_loop_end<'a, 'ctx>(
                             next_instruction.get_operand(0)
                         {
                             // Test that the first operand is the shot count variable (the initial Phi instruction)
-                            let matches_shot_count_loop_start = pattern_context
-                                .initial_instruction
-                                .map_or(Result::Ok(false), |instr| {
-                                    Ok(next_instruction
+                            let matches_shot_count_loop_start =
+                                if let Some(instr) = pattern_context.initial_instruction {
+                                    next_instruction
                                         .get_operand_use(0)
                                         .ok_or_else(|| eyre!("No operand use for operand 0"))?
                                         .get_used_value()
                                         .left()
                                         .ok_or_else(|| eyre!("Operand was not a basic value"))?
                                         .as_instruction_value()
-                                        == Some(instr))
-                                })?;
+                                        == Some(instr)
+                                } else {
+                                    false
+                                };
 
                             if matches_shot_count_loop_start {
                                 let operand = next_instruction.get_operand(1);
@@ -482,7 +488,7 @@ pub(crate) fn quantum_instruction<'ctx>(
                                 controlled,
                                 0,
                                 2,
-                            );
+                            )?;
                             true
                         }
                         "cz" => {
@@ -495,7 +501,7 @@ pub(crate) fn quantum_instruction<'ctx>(
                                 controlled,
                                 0,
                                 2,
-                            );
+                            )?;
                             true
                         }
                         "h" => {
@@ -508,7 +514,7 @@ pub(crate) fn quantum_instruction<'ctx>(
                                 controlled,
                                 0,
                                 1,
-                            );
+                            )?;
                             true
                         }
                         "reset" => {
@@ -526,7 +532,7 @@ pub(crate) fn quantum_instruction<'ctx>(
                                 controlled,
                                 1,
                                 1,
-                            );
+                            )?;
                             true
                         }
                         "s" => {
@@ -539,7 +545,7 @@ pub(crate) fn quantum_instruction<'ctx>(
                                 controlled,
                                 0,
                                 1,
-                            );
+                            )?;
                             true
                         }
                         "x" => {
@@ -552,7 +558,7 @@ pub(crate) fn quantum_instruction<'ctx>(
                                 controlled,
                                 0,
                                 1,
-                            );
+                            )?;
                             true
                         }
                         "mz" => {
@@ -597,7 +603,7 @@ pub(crate) fn quantum_instruction<'ctx>(
                 } else if function_name == "__quantum__qis__read_result__body" {
                     let arguments = get_qis_function_arguments(context, instruction)?;
                     if let Some(OperationArgument::Result(result_index)) = arguments.get(0) {
-                        let ro_index = pattern_context.read_result_mapping.get(&result_index).ok_or_else(|| eyre!("Result index {} was never the target of a measurement operation", result_index))?;
+                        let ro_index = pattern_context.read_result_mapping.get(result_index).ok_or_else(|| eyre!("Result index {} was never the target of a measurement operation", result_index))?;
                         pattern_context
                             .readout_instruction_mapping
                             .push((*ro_index, instruction));

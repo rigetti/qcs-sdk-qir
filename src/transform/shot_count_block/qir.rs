@@ -256,7 +256,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
             };
 
             // Insert the shared library calls to send this program for execution
-            call::executable_from_quil(context, quil_program_global_string.as_pointer_value())
+            call::executable_from_quil(context, quil_program_global_string.as_pointer_value())?
         };
 
         call::wrap_in_shots(context, &executable, shots);
@@ -332,7 +332,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
                 .ok_or_else(|| eyre!("Expected a terminator"))?,
             Some(&basic_block),
             Some(&cleanup_basic_block),
-        );
+        )?;
 
         replace_phi_clauses(
             context,
@@ -340,7 +340,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
             basic_block,
             execution_basic_block,
             true,
-        );
+        )?;
 
         remove_instructions_in_safe_order(pattern_context.instructions_to_remove);
 

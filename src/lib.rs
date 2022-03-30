@@ -49,7 +49,7 @@ pub fn patch_qir_with_qcs<'ctx>(
     shot_count_block::qir::transpile_module(&mut context).wrap_err("transformation failed")?;
 
     if options.add_main_entrypoint {
-        crate::interop::entrypoint::add_main_entrypoint(&mut context);
+        crate::interop::entrypoint::add_main_entrypoint(&mut context)?;
     }
     Ok(context.module)
 }
