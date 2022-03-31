@@ -375,6 +375,11 @@ fn get_quil_parameter_expression<'ctx>(
     float_value: FloatValue<'ctx>,
 ) -> Expression {
     let index = get_quil_parameter_index(pattern_context, float_value);
+    if float_value.is_const() {
+        let constant = float_value.get_constant().unwrap().0;
+        return Expression::Number(constant.into());
+    }
+
     Expression::Address(MemoryReference {
         name: String::from(PARAMETER_MEMORY_REGION_NAME),
         index: index as u64,
@@ -416,6 +421,7 @@ fn add_gate_instruction<'ctx>(
             Ok(get_quil_parameter_expression(pattern_context, float_value))
         })
         .collect::<Result<Vec<Expression>>>()?;
+
     let qubits = (parameter_count..parameter_count + qubit_count)
         .map(|arg_index| {
             Ok(quil_rs::instruction::Qubit::Fixed(*match_qis_argument!(
