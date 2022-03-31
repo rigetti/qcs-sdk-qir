@@ -528,7 +528,7 @@ pub(crate) fn quantum_instruction<'ctx>(
                                 controlled,
                                 1,
                                 1,
-                            );
+                            )?;
                             true
                         }
                         "ry" => {
@@ -541,7 +541,7 @@ pub(crate) fn quantum_instruction<'ctx>(
                                 controlled,
                                 1,
                                 1,
-                            );
+                            )?;
                             true
                         }
                         "rz" => {
