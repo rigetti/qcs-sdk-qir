@@ -404,5 +404,6 @@ mod test {
         make_snapshot_test!(parametric);
         make_snapshot_test!(reduction);
         make_snapshot_test!(vqe_iteration);
+        make_snapshot_test!(cartesian_rotations);
     }
 }
