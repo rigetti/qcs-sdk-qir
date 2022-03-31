@@ -604,6 +604,7 @@ pub(crate) fn quantum_instruction<'ctx>(
                             .readout_instruction_mapping
                             .push((*ro_index, instruction));
                     } else {
+                        // TODO: Support more read results
                         return Err(eyre!("malformed read_result instrinsic"));
                     }
                     pattern_context.instructions_to_remove.push(instruction);

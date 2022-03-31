@@ -39,6 +39,7 @@ pub(crate) fn get_called_function_name(instruction: InstructionValue) -> Result<
             .to_str()
             .ok()
             .map(std::borrow::ToOwned::to_owned)),
+        // TODO: Implement
         _ => Err(eyre!(
             "BasicBlock target of function call is not yet implemented"
         )),
@@ -91,6 +92,7 @@ pub(crate) fn get_qis_function_arguments<'ctx>(
                                 })?;
                             Ok(OperationArgument::Result(result_index))
                         }
+                        // TODO: Ensure all required types are supported
                         other => Err(eyre!(
                             "got unexpected type {} as argument to {:?}",
                             other,
@@ -100,6 +102,7 @@ pub(crate) fn get_qis_function_arguments<'ctx>(
                 } else if let Some(inst) = ptr_value.as_instruction() {
                     Ok(OperationArgument::Instruction(inst))
                 } else {
+                    // TODO: Support more pointer value types
                     Err(eyre!(
                         "unexpected pointer value {:?} as operand {} of instruction {:?}",
                         ptr_value,
@@ -110,6 +113,7 @@ pub(crate) fn get_qis_function_arguments<'ctx>(
             } else if let Either::Left(BasicValueEnum::FloatValue(value)) = target {
                 Ok(OperationArgument::Parameter(value))
             } else {
+                // TODO: Support non-pointer/float function arguments
                 Err(eyre!(
                     "non-pointer/float function argument in {:?}",
                     instruction
