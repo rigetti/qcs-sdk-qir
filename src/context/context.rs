@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::{target::ExecutionTarget, types::Types, values::Values};
+use eyre::Result;
 
-use crate::interop::load::load_module_from_bitcode_file;
+use crate::interop::load::load_module_from_bitcode;
+
+use super::{target::ExecutionTarget, types::Types, values::Values};
 
 pub(crate) struct QCSCompilerContext<'ctx> {
     pub(crate) base_context: &'ctx inkwell::context::Context,
@@ -28,19 +30,18 @@ pub(crate) struct QCSCompilerContext<'ctx> {
 }
 
 impl<'ctx> QCSCompilerContext<'ctx> {
-    pub(crate) fn new_from_file(
+    pub(crate) fn new_from_data(
         context: &'ctx inkwell::context::Context,
-        name: &'ctx str,
-        file_path: &str,
+        data: &[u8],
         target: ExecutionTarget,
         options: ContextOptions,
-    ) -> Self {
+    ) -> Result<Self> {
         let builder = context.create_builder();
-        let module = load_module_from_bitcode_file(context, name, file_path);
+        let module = load_module_from_bitcode(context, data)?;
         let types = Types::new(context);
-        let values = Values::new(context, &builder, &module, &types, &target);
+        let values = Values::new(context, &builder, &module, &types, &target)?;
 
-        Self {
+        Ok(Self {
             base_context: context,
             builder,
             module,
@@ -49,12 +50,12 @@ impl<'ctx> QCSCompilerContext<'ctx> {
             target,
             quil_programs: vec![],
             options,
-        }
+        })
     }
 }
 
 #[derive(Default)]
 pub(crate) struct ContextOptions {
-    pub cache_executables: bool,
-    pub rewiring_pragma: Option<String>,
+    pub(crate) cache_executables: bool,
+    pub(crate) rewiring_pragma: Option<String>,
 }

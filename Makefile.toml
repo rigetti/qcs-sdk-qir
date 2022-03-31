@@ -1,4 +1,25 @@
+[env]
+RUST_BACKTRACE=0
+LLVM_FEATURE = {value = "llvm13-0", condition = {env_not_set = ["LLVM_FEATURE"]}}
+
 [tasks.assemble-llvm]
 command = "find"
 description = "Assemble all LLVM .ll files in this package into bitcode"
 args = [".", "-name", "*.ll", "-exec", "llvm-as", "{}", ";"]
+
+[tasks.format-check]
+command = "cargo"
+args = ["fmt", "--all", "--", "--check"]
+
+[tasks.clippy]
+command = "cargo"
+args = ["clippy", "--features", "${LLVM_FEATURE}"]
+
+[tasks.pre-ci-flow]
+dependencies = ["format-check", "clippy"]
+
+[tasks.build]
+args = ["build", "--features", "${LLVM_FEATURE}"]
+
+[tasks.test]
+args = ["test", "--features", "${LLVM_FEATURE}"]

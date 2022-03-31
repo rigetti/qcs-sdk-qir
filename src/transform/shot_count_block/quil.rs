@@ -15,6 +15,7 @@
 // This module is responsible for the transpilation of contiguous subsequences of LLVM instructions
 // into quil, substituting those instructions with inline calls to a shared library responsible for
 // executing those quil instructions.
+use eyre::{eyre, Result};
 use inkwell::{basic_block::BasicBlock, values::FunctionValue};
 use quil_rs::instruction::Vector;
 
@@ -24,17 +25,20 @@ use super::pattern::ShotCountPatternMatchContext;
 use super::PARAMETER_MEMORY_REGION_NAME;
 
 /// Encapsulates the result of transpiling a QIR module to a Quil program
+#[derive(Debug)]
 pub struct ProgramOutput {
+    /// The Quil program itself
     pub program: quil_rs::Program,
+    /// The number of shots to run the program for, extracted from the primary execution loop
     pub shot_count: u64,
 }
 
 /// Transform an entire QIR module to a single Quil program with shot count inferred
 /// from a program loop counter.
 #[allow(dead_code)]
-pub(crate) fn transpile_module(context: &mut QCSCompilerContext) -> eyre::Result<ProgramOutput> {
-    let entrypoint_function =
-        get_entry_function(&context.module).expect("entrypoint not found in module");
+pub(crate) fn transpile_module(context: &mut QCSCompilerContext) -> Result<ProgramOutput> {
+    let entrypoint_function = get_entry_function(&context.module)
+        .ok_or_else(|| eyre!("entrypoint not found in module"))?;
     transpile_function(context, entrypoint_function, &[])
 }
 
@@ -177,16 +181,19 @@ mod test {
                     let _ = env_logger::builder().is_test(true).try_init();
 
                     let base_context = inkwell::context::Context::create();
-                    let mut context = QCSCompilerContext::new_from_file(
+                    let data =
+                        std::fs::read(format!("tests/fixtures/programs/{}.bc", stringify!($name)))
+                            .unwrap();
+                    let mut context = QCSCompilerContext::new_from_data(
                         &base_context,
-                        "qcs",
-                        format!("test/fixtures/programs/{}.bc", stringify!($name)).as_str(),
+                        &data,
                         ExecutionTarget::Qvm,
                         ContextOptions {
                             cache_executables: false,
                             rewiring_pragma: None,
                         },
-                    );
+                    )
+                    .unwrap();
                     let result = transpile_module(&mut context).expect("transpilation failed");
 
                     insta::assert_snapshot!(result.program.to_string(true));

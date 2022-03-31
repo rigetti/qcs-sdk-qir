@@ -1,3 +1,5 @@
+#![deny(clippy::pedantic)]
+
 // Copyright 2022 Rigetti Computing
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,15 +16,10 @@
 
 use std::path::PathBuf;
 
-use crate::context::QCSCompilerContext;
-use crate::transform::shot_count_block;
 use clap::Parser;
-use context::context::ContextOptions;
-use context::target::ExecutionTarget;
+use eyre::Result;
 
-mod context;
-mod interop;
-mod transform;
+use qcs_sdk_qir::{ExecutionTarget, PatchOptions};
 
 #[derive(Parser, Debug)]
 #[structopt(name = "QIRQuilTranslator", about = "Translate QIR to Quil")]
@@ -54,12 +51,14 @@ enum QcsQirCli {
         #[clap(long)]
         quil_rewiring_pragma: Option<String>,
     },
-    TranspileToQuil {
-        llvm_bitcode_path: PathBuf,
-    },
+    #[clap(
+        name = "transpile-to-quil",
+        about = "Given an LLVM bitcode file, output the equivalent Quil program"
+    )]
+    TranspileToQuil { llvm_bitcode_path: PathBuf },
 }
 
-fn main() {
+fn main() -> Result<()> {
     env_logger::init();
 
     let opt = QcsQirCli::parse();
@@ -72,55 +71,34 @@ fn main() {
             cache_executables,
             quil_rewiring_pragma,
         } => {
-            let base_context = inkwell::context::Context::create();
-            let context_options = ContextOptions {
-                cache_executables,
-                rewiring_pragma: quil_rewiring_pragma,
-            };
-
-            let mut context = QCSCompilerContext::new_from_file(
-                &base_context,
-                "qcs",
-                llvm_bitcode_path
-                    .to_str()
-                    .expect("provided LLVM bitcode path is not valid"),
+            let bitcode = std::fs::read(llvm_bitcode_path)?;
+            let options = PatchOptions {
+                add_main_entrypoint,
                 execution_target,
-                context_options,
-            );
-
-            shot_count_block::qir::transpile_module(&mut context).expect("transformation failed");
-
-            if add_main_entrypoint {
-                crate::interop::entrypoint::add_main_entrypoint(&mut context);
-            }
-
+                cache_executables,
+                quil_rewiring_pragma,
+            };
+            let context = inkwell::context::Context::create();
+            let module = qcs_sdk_qir::patch_qir_with_qcs(options, &bitcode, &context)?;
             match bitcode_out {
                 Some(path) => {
-                    context.module.write_bitcode_to_path(&path);
+                    module.write_bitcode_to_path(&path);
                 }
                 None => {
-                    context.module.print_to_stderr();
+                    module.print_to_stderr();
                 }
             }
+            Ok(())
         }
         QcsQirCli::TranspileToQuil { llvm_bitcode_path } => {
-            let base_context = inkwell::context::Context::create();
-            let mut context = QCSCompilerContext::new_from_file(
-                &base_context,
-                "qcs",
-                llvm_bitcode_path
-                    .to_str()
-                    .expect("provided LLVM bitcode path is not valid"),
-                ExecutionTarget::Qvm, // TODO: make this optional
-                ContextOptions::default(),
-            );
-            let output = shot_count_block::quil::transpile_module(&mut context)
-                .expect("transpilation failed");
+            let data = std::fs::read(llvm_bitcode_path)?;
+            let output = qcs_sdk_qir::transpile_qir_to_quil(&data)?;
             println!(
                 "shot count: {}\nprogram: {}\n",
                 output.shot_count,
                 output.program.to_string(true)
             );
+            Ok(())
         }
     }
 }

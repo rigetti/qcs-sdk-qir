@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use eyre::{eyre, Result};
 use inkwell::{
     module::Linkage,
     types::BasicMetadataTypeEnum,
@@ -39,13 +40,13 @@ pub(crate) fn printf<'ctx>(context: &mut QCSCompilerContext<'ctx>, string: Point
     );
 }
 
-pub(crate) struct Executable<'ctx>(pub PointerValue<'ctx>);
+pub(crate) struct Executable<'ctx>(pub(crate) PointerValue<'ctx>);
 
 #[allow(dead_code)]
 pub(crate) fn executable_from_quil<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     quil: PointerValue<'ctx>,
-) -> Executable<'ctx> {
+) -> Result<Executable<'ctx>> {
     let string_type = context.types.string();
     let executable_call_site_value = context.builder.build_call(
         context.values.executable_from_quil_function(),
@@ -54,20 +55,21 @@ pub(crate) fn executable_from_quil<'ctx>(
         )],
         "",
     );
-    Executable(
+    Ok(Executable(
         executable_call_site_value
             .try_as_basic_value()
-            .unwrap_left()
+            .left()
+            .ok_or_else(|| eyre!("expected basic value"))?
             .into_pointer_value(),
-    )
+    ))
 }
 
-pub struct ExecutionResult<'ctx>(PointerValue<'ctx>);
+pub(crate) struct ExecutionResult<'ctx>(PointerValue<'ctx>);
 
 pub(crate) fn execute_on_qpu<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     executable: &Executable<'ctx>,
-) -> ExecutionResult<'ctx> {
+) -> Result<ExecutionResult<'ctx>> {
     let execution_result = context.builder.build_call(
         context.values.execute_on_qpu_function(),
         &[
@@ -75,36 +77,38 @@ pub(crate) fn execute_on_qpu<'ctx>(
             context
                 .values
                 .quantum_processor_id()
-                .expect("expected a quantum processor ID to be provided")
+                .ok_or_else(|| eyre!("expected a quantum processor ID to be provided"))?
                 .into(),
         ],
         "",
     );
 
-    ExecutionResult(
+    Ok(ExecutionResult(
         execution_result
             .try_as_basic_value()
-            .unwrap_left()
+            .left()
+            .ok_or_else(|| eyre!("Expected a basic value"))?
             .into_pointer_value(),
-    )
+    ))
 }
 
 pub(crate) fn execute_on_qvm<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     executable: &Executable<'ctx>,
-) -> ExecutionResult<'ctx> {
+) -> Result<ExecutionResult<'ctx>> {
     let execution_result = context.builder.build_call(
         context.values.execute_on_qvm_function(),
         &[executable.0.into()],
         "",
     );
 
-    ExecutionResult(
+    Ok(ExecutionResult(
         execution_result
             .try_as_basic_value()
-            .unwrap_left()
+            .left()
+            .ok_or_else(|| eyre!("Expected a basic value"))?
             .into_pointer_value(),
-    )
+    ))
 }
 
 #[allow(dead_code)]
@@ -134,7 +138,7 @@ pub(crate) fn free_execution_result<'ctx>(
 pub(crate) fn get_executable<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     index: IntValue<'ctx>,
-) -> Executable<'ctx> {
+) -> Result<Executable<'ctx>> {
     let cache_pointer = context
         .builder
         .build_load(context.values.executable_cache().as_pointer_value(), "");
@@ -145,13 +149,13 @@ pub(crate) fn get_executable<'ctx>(
         "",
     );
 
-    Executable(
+    Ok(Executable(
         call_site_value
             .try_as_basic_value()
             .left()
-            .expect("function does not return a value")
+            .ok_or_else(|| eyre!("function does not return a value"))?
             .into_pointer_value(),
-    )
+    ))
 }
 
 /// Insert a call which accepts as its only argument an `ExecutionResult`, and panics and exits if that
@@ -172,7 +176,7 @@ pub(crate) fn get_readout_bit<'ctx>(
     execution_result: &ExecutionResult<'ctx>,
     shot_index: IntValue<'ctx>,
     readout_index: u64,
-) -> IntValue<'ctx> {
+) -> Result<IntValue<'ctx>> {
     let result = context.builder.build_call(
         context.values.get_readout_bit_function(),
         &[
@@ -187,7 +191,11 @@ pub(crate) fn get_readout_bit<'ctx>(
         "",
     );
 
-    result.try_as_basic_value().unwrap_left().into_int_value()
+    Ok(result
+        .try_as_basic_value()
+        .left()
+        .ok_or_else(|| eyre!("Expected basic value"))?
+        .into_int_value())
 }
 
 pub(crate) fn set_param<'ctx>(

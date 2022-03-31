@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use eyre::{eyre, Result};
 use inkwell::{
     builder::Builder,
     context::Context,
@@ -364,38 +365,37 @@ pub(crate) struct Values<'ctx> {
 impl<'ctx> Values<'ctx> {
     /// Get a reference to the values's executable from quil function.
     #[allow(dead_code)]
-    pub fn executable_from_quil_function(&self) -> FunctionValue<'ctx> {
+    pub(crate) fn executable_from_quil_function(&self) -> FunctionValue<'ctx> {
         self.executable_from_quil_function
     }
 
     /// Get a reference to the values's execute on qpu function.
-    pub fn execute_on_qpu_function(&self) -> FunctionValue<'ctx> {
+    pub(crate) fn execute_on_qpu_function(&self) -> FunctionValue<'ctx> {
         self.execute_on_qpu_function
     }
 
     /// Get a reference to the values's execute on qvm function.
-    pub fn execute_on_qvm_function(&self) -> FunctionValue<'ctx> {
+    pub(crate) fn execute_on_qvm_function(&self) -> FunctionValue<'ctx> {
         self.execute_on_qvm_function
     }
 
     /// Get a reference to the values's get readout bit function.
-    pub fn get_readout_bit_function(&self) -> FunctionValue<'ctx> {
+    pub(crate) fn get_readout_bit_function(&self) -> FunctionValue<'ctx> {
         self.get_readout_bit_function
     }
 
-    pub fn new(
+    pub(crate) fn new(
         context: &'ctx Context,
         builder: &Builder<'ctx>,
         module: &Module<'ctx>,
         types: &Types<'ctx>,
         target: &ExecutionTarget,
-    ) -> Self {
+    ) -> Result<Self> {
         // To create global values, the builder must be positioned inside a basic block even if it never writes within that basic block.
         // see https://github.com/TheDan64/inkwell/issues/32
         let basic_block = get_entry_function(module)
-            .expect("QIR expected entrypoint not found")
-            .get_first_basic_block()
-            .unwrap();
+            .and_then(FunctionValue::get_first_basic_block)
+            .ok_or_else(|| eyre!("QIR expected entrypoint not found"))?;
         builder.position_at_end(basic_block);
 
         let executable_cache = module.add_global(
@@ -411,7 +411,7 @@ impl<'ctx> Values<'ctx> {
             .const_zero();
         executable_cache.set_initializer(&initializer);
 
-        Self {
+        Ok(Self {
             executable_from_quil_function: build_executable_from_quil_function(
                 context, builder, module, types,
             ),
@@ -451,31 +451,31 @@ impl<'ctx> Values<'ctx> {
             free_executable_cache: build_free_executable_cache_function(
                 context, builder, module, types,
             ),
-        }
+        })
     }
 
     /// Get a reference to the values's panic on failure function.
-    pub fn panic_on_failure_function(&self) -> FunctionValue<'ctx> {
+    pub(crate) fn panic_on_failure_function(&self) -> FunctionValue<'ctx> {
         self.panic_on_failure_function
     }
 
     /// Get a reference to the values's parameter memory region name.
-    pub fn parameter_memory_region_name(&self) -> PointerValue<'ctx> {
+    pub(crate) fn parameter_memory_region_name(&self) -> PointerValue<'ctx> {
         self.parameter_memory_region_name
     }
 
     /// Get a reference to the values's quantum processor id.
-    pub fn quantum_processor_id(&self) -> Option<PointerValue<'ctx>> {
+    pub(crate) fn quantum_processor_id(&self) -> Option<PointerValue<'ctx>> {
         self.quantum_processor_id
     }
 
     /// Get a reference to the values's set param function.
-    pub fn set_param_function(&self) -> FunctionValue<'ctx> {
+    pub(crate) fn set_param_function(&self) -> FunctionValue<'ctx> {
         self.set_param_function
     }
 
     /// Get a reference to the values's wrap in shots function.
-    pub fn wrap_in_shots_function(&self) -> FunctionValue<'ctx> {
+    pub(crate) fn wrap_in_shots_function(&self) -> FunctionValue<'ctx> {
         self.wrap_in_shots_function
     }
 
