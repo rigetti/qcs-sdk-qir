@@ -51,7 +51,7 @@ enum QcsQirCli {
         #[clap(long)]
         quil_rewiring_pragma: Option<String>,
     },
-    #[structopt(
+    #[clap(
         name = "transpile-to-quil",
         about = "Given an LLVM bitcode file, output the equivalent Quil program"
     )]
