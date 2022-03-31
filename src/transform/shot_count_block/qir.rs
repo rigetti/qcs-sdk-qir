@@ -15,7 +15,7 @@
 use eyre::{eyre, ContextCompat, Result};
 use inkwell::{
     basic_block::BasicBlock,
-    values::{AnyValue, FunctionValue, InstructionValue},
+    values::{AnyValue, FloatValue, FunctionValue, InstructionValue},
 };
 use log::{debug, info};
 use quil_rs::instruction::Vector;
@@ -184,12 +184,19 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
         ));
 
         if !pattern_context.parameters.is_empty() {
+            let length = pattern_context
+                .parameters
+                .iter()
+                .filter(|v| v.is_const())
+                .collect::<Vec<&FloatValue>>()
+                .len() as u64;
+
             program.add_instruction(quil_rs::instruction::Instruction::Declaration(
                 quil_rs::instruction::Declaration {
                     name: String::from(PARAMETER_MEMORY_REGION_NAME),
                     size: Vector {
                         data_type: quil_rs::instruction::ScalarType::Real,
-                        length: pattern_context.parameters.len() as u64,
+                        length,
                     },
                     sharing: None,
                 },

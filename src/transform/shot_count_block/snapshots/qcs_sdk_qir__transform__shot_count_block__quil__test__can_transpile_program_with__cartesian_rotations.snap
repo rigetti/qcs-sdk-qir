@@ -4,7 +4,7 @@ expression: result.program.to_string(true)
 ---
 DECLARE __qir_param REAL[1]
 DECLARE ro BIT[0]
-RX(__qir_param[0]) 0
-RY(__qir_param[0]) 0
-RZ(__qir_param[0]) 0
+RX(2) 0
+RY(2) 0
+RZ(2) 0
 
