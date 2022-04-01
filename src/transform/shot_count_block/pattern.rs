@@ -194,7 +194,7 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
     }
 
     /// Returns the parameters which do not have a constant value.
-    pub(crate) fn dynamic_parameters(&self) -> Vec<&FloatValue<'ctx>> {
+    pub(crate) fn get_dynamic_parameters(&self) -> Vec<&FloatValue<'ctx>> {
         self.parameters
             .iter()
             .filter(|v| !v.is_const())
@@ -382,15 +382,11 @@ fn get_quil_parameter_expression<'ctx>(
     pattern_context: &mut ShotCountPatternMatchContext<'ctx>,
     float_value: FloatValue<'ctx>,
 ) -> Expression {
-    let index = get_quil_parameter_index(pattern_context, float_value);
-    if float_value.is_const() {
-        let constant = float_value
-            .get_constant()
-            .expect("parameter constant should exist")
-            .0;
+    if let Some((constant, _)) = float_value.get_constant() {
         return Expression::Number(constant.into());
     }
 
+    let index = get_quil_parameter_index(pattern_context, float_value);
     Expression::Address(MemoryReference {
         name: String::from(PARAMETER_MEMORY_REGION_NAME),
         index: index as u64,
