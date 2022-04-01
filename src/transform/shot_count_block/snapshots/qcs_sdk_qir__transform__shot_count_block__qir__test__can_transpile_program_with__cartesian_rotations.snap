@@ -3,7 +3,7 @@ source: src/transform/shot_count_block/qir.rs
 expression: context.module.print_to_string().to_str().unwrap()
 ---
 ; ModuleID = 'qcs'
-source_filename = "test/fixtures/programs/cartesian_rotations.ll"
+source_filename = "./tests/fixtures/programs/cartesian_rotations.ll"
 
 %ExecutableCache = type opaque
 %Qubit = type opaque
@@ -38,7 +38,6 @@ body_cleanup:                                     ; preds = %body
 body_execution:                                   ; preds = %entry, <null operand!>
   %3 = call %Executable* @executable_from_quil(i8* getelementptr inbounds ([43 x i8], [43 x i8]* @quil_program, i32 0, i32 0))
   call void @wrap_in_shots(%Executable* %3, i32 1000)
-  call void @set_param(%Executable* %3, i8* getelementptr inbounds ([12 x i8], [12 x i8]* @parameter_memory_region_name, i32 0, i32 0), i32 0, double 2.000000e+00)
   %4 = call %ExecutionResult* @execute_on_qvm(%Executable* %3)
   call void @panic_on_failure(%ExecutionResult* %4)
   br label %body
