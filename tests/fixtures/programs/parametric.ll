@@ -15,7 +15,9 @@ body:
     ; shot count variable
     %1 = phi i64 [ %2, %body ], [ 1, %entry ]
     tail call void @__quantum__qis__rz__body(double %0, %Qubit* null)
+    tail call void @__quantum__qis__rz__body(double %0, %Qubit* null) ; test re-use of same variable
     tail call void @__quantum__qis__rz__body(double 2.0, %Qubit* null)
+    tail call void @__quantum__qis__rz__body(double 12.123456789, %Qubit* null)
     %2 = add nuw nsw i64 %1, 1
     %3 = icmp ult i64 %1, 1000
     br i1 %3, label %body, label %exit

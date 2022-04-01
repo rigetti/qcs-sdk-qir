@@ -192,6 +192,14 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
 
         Ok(pattern_context)
     }
+
+    /// Returns the parameters which do not have a constant value.
+    pub(crate) fn get_dynamic_parameters(&self) -> Vec<&FloatValue<'ctx>> {
+        self.parameters
+            .iter()
+            .filter(|v| !v.is_const())
+            .collect::<Vec<&FloatValue>>()
+    }
 }
 
 /// Match the initial instruction of a shot-count loop. This may take one of the following forms:
@@ -374,6 +382,10 @@ fn get_quil_parameter_expression<'ctx>(
     pattern_context: &mut ShotCountPatternMatchContext<'ctx>,
     float_value: FloatValue<'ctx>,
 ) -> Expression {
+    if let Some((constant, _)) = float_value.get_constant() {
+        return Expression::Number(constant.into());
+    }
+
     let index = get_quil_parameter_index(pattern_context, float_value);
     Expression::Address(MemoryReference {
         name: String::from(PARAMETER_MEMORY_REGION_NAME),
@@ -416,6 +428,7 @@ fn add_gate_instruction<'ctx>(
             Ok(get_quil_parameter_expression(pattern_context, float_value))
         })
         .collect::<Result<Vec<Expression>>>()?;
+
     let qubits = (parameter_count..parameter_count + qubit_count)
         .map(|arg_index| {
             Ok(quil_rs::instruction::Qubit::Fixed(*match_qis_argument!(

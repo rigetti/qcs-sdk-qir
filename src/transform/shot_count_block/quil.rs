@@ -111,13 +111,13 @@ pub(crate) fn build_quil_program<'ctx, 'p: 'ctx>(
             },
         ));
 
-        if !pattern_context.parameters.is_empty() {
+        if !pattern_context.get_dynamic_parameters().is_empty() {
             program.add_instruction(quil_rs::instruction::Instruction::Declaration(
                 quil_rs::instruction::Declaration {
                     name: String::from(PARAMETER_MEMORY_REGION_NAME),
                     size: Vector {
                         data_type: quil_rs::instruction::ScalarType::Real,
-                        length: pattern_context.parameters.len() as u64,
+                        length: pattern_context.get_dynamic_parameters().len() as u64,
                     },
                     sharing: None,
                 },
