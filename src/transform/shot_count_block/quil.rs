@@ -16,10 +16,7 @@
 // into quil, substituting those instructions with inline calls to a shared library responsible for
 // executing those quil instructions.
 use eyre::{eyre, Result};
-use inkwell::{
-    basic_block::BasicBlock,
-    values::{FloatValue, FunctionValue},
-};
+use inkwell::{basic_block::BasicBlock, values::FunctionValue};
 use quil_rs::instruction::Vector;
 
 use crate::{context::QCSCompilerContext, interop::entrypoint::get_entry_function};
@@ -114,22 +111,13 @@ pub(crate) fn build_quil_program<'ctx, 'p: 'ctx>(
             },
         ));
 
-        if !pattern_context.parameters.is_empty() {
-            let length = pattern_context
-                .parameters
-                .iter()
-                .filter(|v| v.is_const())
-                .collect::<Vec<&FloatValue>>()
-                .len() as u64;
-
-            //     println!(">>>>>>>>>>>>> length: {}", length);
-
+        if !pattern_context.dynamic_parameters().is_empty() {
             program.add_instruction(quil_rs::instruction::Instruction::Declaration(
                 quil_rs::instruction::Declaration {
                     name: String::from(PARAMETER_MEMORY_REGION_NAME),
                     size: Vector {
                         data_type: quil_rs::instruction::ScalarType::Real,
-                        length,
+                        length: pattern_context.dynamic_parameters().len() as u64,
                     },
                     sharing: None,
                 },

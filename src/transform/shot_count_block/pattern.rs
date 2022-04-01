@@ -192,6 +192,14 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
 
         Ok(pattern_context)
     }
+
+    /// Returns the parameters which do not have a constant value.
+    pub(crate) fn dynamic_parameters(&self) -> Vec<&FloatValue<'ctx>> {
+        self.parameters
+            .iter()
+            .filter(|v| !v.is_const())
+            .collect::<Vec<&FloatValue>>()
+    }
 }
 
 /// Match the initial instruction of a shot-count loop. This may take one of the following forms:
