@@ -384,7 +384,10 @@ fn get_quil_parameter_expression<'ctx>(
 ) -> Expression {
     let index = get_quil_parameter_index(pattern_context, float_value);
     if float_value.is_const() {
-        let constant = float_value.get_constant().unwrap().0;
+        let constant = float_value
+            .get_constant()
+            .expect("parameter constant should exist")
+            .0;
         return Expression::Number(constant.into());
     }
 
