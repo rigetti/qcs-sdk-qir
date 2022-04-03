@@ -14,6 +14,7 @@
 
 use inkwell::{
     context::Context,
+    module::Module,
     types::{PointerType, StructType},
     AddressSpace,
 };
@@ -21,6 +22,10 @@ use inkwell::{
 fn build_string_type(context: &Context) -> PointerType {
     context.i8_type().ptr_type(AddressSpace::Generic)
 }
+
+const TYPE_NAME_EXECUTION_RESULT: &str = "ExecutionResult";
+const TYPE_NAME_EXECUTABLE: &str = "Executable";
+const TYPE_NAME_EXECUTABLE_CACHE: &str = "ExecutableCache";
 
 pub(crate) struct Types<'ctx> {
     string: PointerType<'ctx>,
@@ -30,22 +35,31 @@ pub(crate) struct Types<'ctx> {
 }
 
 impl<'ctx> Types<'ctx> {
-    pub(crate) fn executable(&self) -> StructType<'ctx> {
-        self.executable
+    pub(crate) fn executable(&self, module: &Module<'ctx>) -> StructType<'ctx> {
+        match module.get_struct_type(TYPE_NAME_EXECUTABLE) {
+            Some(s) => s,
+            None => self.executable,
+        }
     }
 
-    pub(crate) fn executable_cache(&self) -> StructType<'ctx> {
-        self.executable_cache
+    pub(crate) fn executable_cache(&self, module: &Module<'ctx>) -> StructType<'ctx> {
+        match module.get_struct_type(TYPE_NAME_EXECUTABLE_CACHE) {
+            Some(s) => s,
+            None => self.executable_cache,
+        }
     }
 
-    pub(crate) fn execution_result(&self) -> StructType<'ctx> {
-        self.execution_result
+    pub(crate) fn execution_result(&self, module: &Module<'ctx>) -> StructType<'ctx> {
+        match module.get_struct_type(TYPE_NAME_EXECUTION_RESULT) {
+            Some(s) => s,
+            None => self.execution_result,
+        }
     }
 
     pub(crate) fn new(context: &'ctx Context) -> Self {
-        let execution_result = context.opaque_struct_type("ExecutionResult");
-        let executable = context.opaque_struct_type("Executable");
-        let executable_cache = context.opaque_struct_type("ExecutableCache");
+        let execution_result = context.opaque_struct_type(TYPE_NAME_EXECUTION_RESULT);
+        let executable = context.opaque_struct_type(TYPE_NAME_EXECUTABLE);
+        let executable_cache = context.opaque_struct_type(TYPE_NAME_EXECUTABLE_CACHE);
 
         Self {
             string: build_string_type(context),

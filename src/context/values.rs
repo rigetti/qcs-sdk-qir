@@ -34,7 +34,7 @@ fn build_executable_from_quil_function<'ctx>(
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
     let string_type = types.string();
-    let executable_type = types.executable();
+    let executable_type = types.executable(module);
     let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
 
     let executable_from_quil_type =
@@ -53,10 +53,10 @@ fn build_execute_on_qpu_function<'ctx>(
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
     let string_type = types.string();
-    let executable_type = types.executable();
+    let executable_type = types.executable(module);
     let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
 
-    let execution_result_type = types.execution_result();
+    let execution_result_type = types.execution_result(module);
     let execution_result_pointer_type = execution_result_type.ptr_type(AddressSpace::Generic);
     let execute_on_qpu_type = execution_result_pointer_type.fn_type(
         &[
@@ -78,10 +78,10 @@ fn build_execute_on_qvm_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    let executable_type = types.executable();
+    let executable_type = types.executable(module);
     let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
 
-    let execution_result_type = types.execution_result();
+    let execution_result_type = types.execution_result(module);
     let execution_result_pointer_type = execution_result_type.ptr_type(AddressSpace::Generic);
     let execute_on_qvm_type = execution_result_pointer_type.fn_type(
         &[BasicMetadataTypeEnum::PointerType(executable_pointer_type)],
@@ -100,7 +100,7 @@ fn build_free_executable_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    let executable_type = types.executable();
+    let executable_type = types.executable(module);
     let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
 
     let free_executable_type = context.void_type().fn_type(
@@ -120,7 +120,7 @@ fn build_free_execution_result_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    let execution_result_type = types.execution_result();
+    let execution_result_type = types.execution_result(module);
     let execution_result_pointer_type = execution_result_type.ptr_type(AddressSpace::Generic);
     let free_execution_result_type = context.void_type().fn_type(
         &[BasicMetadataTypeEnum::PointerType(
@@ -144,7 +144,7 @@ fn build_create_executable_cache_function<'ctx>(
     module.add_function(
         "create_executable_cache",
         types
-            .executable_cache()
+            .executable_cache(module)
             .ptr_type(AddressSpace::Generic)
             .fn_type(&[context.i32_type().into()], false),
         None,
@@ -162,7 +162,7 @@ fn build_add_executable_cache_item_function<'ctx>(
         context.void_type().fn_type(
             &[
                 types
-                    .executable_cache()
+                    .executable_cache(module)
                     .ptr_type(AddressSpace::Generic)
                     .into(),
                 context.i32_type().into(),
@@ -182,16 +182,19 @@ fn build_read_from_executable_cache_function<'ctx>(
 ) -> FunctionValue<'ctx> {
     module.add_function(
         "read_from_executable_cache",
-        types.executable().ptr_type(AddressSpace::Generic).fn_type(
-            &[
-                types
-                    .executable_cache()
-                    .ptr_type(AddressSpace::Generic)
-                    .into(),
-                context.i32_type().into(),
-            ],
-            false,
-        ),
+        types
+            .executable(module)
+            .ptr_type(AddressSpace::Generic)
+            .fn_type(
+                &[
+                    types
+                        .executable_cache(module)
+                        .ptr_type(AddressSpace::Generic)
+                        .into(),
+                    context.i32_type().into(),
+                ],
+                false,
+            ),
         None,
     )
 }
@@ -206,7 +209,7 @@ fn build_free_executable_cache_function<'ctx>(
         "free_executable_cache",
         context.void_type().fn_type(
             &[types
-                .executable_cache()
+                .executable_cache(module)
                 .ptr_type(AddressSpace::Generic)
                 .into()],
             false,
@@ -221,7 +224,7 @@ fn build_get_readout_bit_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    let execution_result_type = types.execution_result();
+    let execution_result_type = types.execution_result(module);
     let execution_result_pointer_type = execution_result_type.ptr_type(AddressSpace::Generic);
 
     let i64_type = context.i64_type();
@@ -248,7 +251,7 @@ fn build_set_param_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    let executable_type = types.executable();
+    let executable_type = types.executable(module);
     let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
 
     let string_type = types.string();
@@ -275,7 +278,7 @@ fn build_panic_on_failure_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    let execution_result_type = types.execution_result();
+    let execution_result_type = types.execution_result(module);
     let execution_result_pointer_type = execution_result_type.ptr_type(AddressSpace::Generic);
 
     let panic_type = context.void_type().fn_type(
@@ -327,7 +330,7 @@ fn build_wrap_in_shots_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    let executable_type = types.executable();
+    let executable_type = types.executable(module);
     let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
     let i32_type = context.i32_type();
 
@@ -399,14 +402,16 @@ impl<'ctx> Values<'ctx> {
         builder.position_at_end(basic_block);
 
         let executable_cache = module.add_global(
-            types.executable_cache().ptr_type(AddressSpace::Generic),
+            types
+                .executable_cache(module)
+                .ptr_type(AddressSpace::Generic),
             None,
             "executable_cache",
         );
         executable_cache.set_linkage(Linkage::Private);
         executable_cache.set_externally_initialized(false);
         let initializer = types
-            .executable_cache()
+            .executable_cache(module)
             .ptr_type(AddressSpace::Generic)
             .const_zero();
         executable_cache.set_initializer(&initializer);
