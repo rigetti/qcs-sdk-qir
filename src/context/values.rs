@@ -33,17 +33,23 @@ fn build_executable_from_quil_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    let string_type = types.string();
-    let executable_type = types.executable(module);
-    let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
+    const FN_NAME_EXECUTABLE_FROM_QUIL: &str = "executable_from_quil";
 
-    let executable_from_quil_type =
-        executable_pointer_type.fn_type(&[BasicMetadataTypeEnum::PointerType(string_type)], false);
-    module.add_function(
-        "executable_from_quil",
-        executable_from_quil_type,
-        Some(Linkage::External),
-    )
+    if let Some(existing_function) = module.get_function(FN_NAME_EXECUTABLE_FROM_QUIL) {
+        existing_function
+    } else {
+        let string_type = types.string();
+        let executable_type = types.executable(module);
+        let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
+
+        let executable_from_quil_type = executable_pointer_type
+            .fn_type(&[BasicMetadataTypeEnum::PointerType(string_type)], false);
+        module.add_function(
+            FN_NAME_EXECUTABLE_FROM_QUIL,
+            executable_from_quil_type,
+            Some(Linkage::External),
+        )
+    }
 }
 
 fn build_execute_on_qpu_function<'ctx>(
@@ -52,24 +58,30 @@ fn build_execute_on_qpu_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    let string_type = types.string();
-    let executable_type = types.executable(module);
-    let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
+    const FN_NAME_EXECUTE_ON_QPU: &str = "execute_on_qpu";
 
-    let execution_result_type = types.execution_result(module);
-    let execution_result_pointer_type = execution_result_type.ptr_type(AddressSpace::Generic);
-    let execute_on_qpu_type = execution_result_pointer_type.fn_type(
-        &[
-            BasicMetadataTypeEnum::PointerType(executable_pointer_type),
-            BasicMetadataTypeEnum::PointerType(string_type),
-        ],
-        false,
-    );
-    module.add_function(
-        "execute_on_qpu",
-        execute_on_qpu_type,
-        Some(Linkage::External),
-    )
+    if let Some(existing_function) = module.get_function(FN_NAME_EXECUTE_ON_QPU) {
+        existing_function
+    } else {
+        let string_type = types.string();
+        let executable_type = types.executable(module);
+        let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
+
+        let execution_result_type = types.execution_result(module);
+        let execution_result_pointer_type = execution_result_type.ptr_type(AddressSpace::Generic);
+        let execute_on_qpu_type = execution_result_pointer_type.fn_type(
+            &[
+                BasicMetadataTypeEnum::PointerType(executable_pointer_type),
+                BasicMetadataTypeEnum::PointerType(string_type),
+            ],
+            false,
+        );
+        module.add_function(
+            FN_NAME_EXECUTE_ON_QPU,
+            execute_on_qpu_type,
+            Some(Linkage::External),
+        )
+    }
 }
 
 fn build_execute_on_qvm_function<'ctx>(
@@ -78,20 +90,26 @@ fn build_execute_on_qvm_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    let executable_type = types.executable(module);
-    let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
+    const FN_NAME_EXECUTE_ON_QVM: &str = "execute_on_qvm";
 
-    let execution_result_type = types.execution_result(module);
-    let execution_result_pointer_type = execution_result_type.ptr_type(AddressSpace::Generic);
-    let execute_on_qvm_type = execution_result_pointer_type.fn_type(
-        &[BasicMetadataTypeEnum::PointerType(executable_pointer_type)],
-        false,
-    );
-    module.add_function(
-        "execute_on_qvm",
-        execute_on_qvm_type,
-        Some(Linkage::External),
-    )
+    if let Some(existing_function) = module.get_function(FN_NAME_EXECUTE_ON_QVM) {
+        existing_function
+    } else {
+        let executable_type = types.executable(module);
+        let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
+
+        let execution_result_type = types.execution_result(module);
+        let execution_result_pointer_type = execution_result_type.ptr_type(AddressSpace::Generic);
+        let execute_on_qvm_type = execution_result_pointer_type.fn_type(
+            &[BasicMetadataTypeEnum::PointerType(executable_pointer_type)],
+            false,
+        );
+        module.add_function(
+            FN_NAME_EXECUTE_ON_QVM,
+            execute_on_qvm_type,
+            Some(Linkage::External),
+        )
+    }
 }
 
 fn build_free_executable_function<'ctx>(
@@ -100,18 +118,24 @@ fn build_free_executable_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    let executable_type = types.executable(module);
-    let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
+    const FN_NAME_FREE_EXECUTABLE: &str = "free_executable";
 
-    let free_executable_type = context.void_type().fn_type(
-        &[BasicMetadataTypeEnum::PointerType(executable_pointer_type)],
-        false,
-    );
-    module.add_function(
-        "free_executable",
-        free_executable_type,
-        Some(Linkage::External),
-    )
+    if let Some(existing_function) = module.get_function(FN_NAME_FREE_EXECUTABLE) {
+        existing_function
+    } else {
+        let executable_type = types.executable(module);
+        let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
+
+        let free_executable_type = context.void_type().fn_type(
+            &[BasicMetadataTypeEnum::PointerType(executable_pointer_type)],
+            false,
+        );
+        module.add_function(
+            FN_NAME_FREE_EXECUTABLE,
+            free_executable_type,
+            Some(Linkage::External),
+        )
+    }
 }
 
 fn build_free_execution_result_function<'ctx>(
@@ -120,19 +144,25 @@ fn build_free_execution_result_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    let execution_result_type = types.execution_result(module);
-    let execution_result_pointer_type = execution_result_type.ptr_type(AddressSpace::Generic);
-    let free_execution_result_type = context.void_type().fn_type(
-        &[BasicMetadataTypeEnum::PointerType(
-            execution_result_pointer_type,
-        )],
-        false,
-    );
-    module.add_function(
-        "free_execution_result",
-        free_execution_result_type,
-        Some(Linkage::External),
-    )
+    const FN_NAME_FREE_EXECUTION_RESULT: &str = "free_execution_result";
+
+    if let Some(existing_function) = module.get_function(FN_NAME_FREE_EXECUTION_RESULT) {
+        existing_function
+    } else {
+        let execution_result_type = types.execution_result(module);
+        let execution_result_pointer_type = execution_result_type.ptr_type(AddressSpace::Generic);
+        let free_execution_result_type = context.void_type().fn_type(
+            &[BasicMetadataTypeEnum::PointerType(
+                execution_result_pointer_type,
+            )],
+            false,
+        );
+        module.add_function(
+            FN_NAME_FREE_EXECUTION_RESULT,
+            free_execution_result_type,
+            Some(Linkage::External),
+        )
+    }
 }
 
 fn build_create_executable_cache_function<'ctx>(
@@ -141,14 +171,20 @@ fn build_create_executable_cache_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    module.add_function(
-        "create_executable_cache",
-        types
-            .executable_cache(module)
-            .ptr_type(AddressSpace::Generic)
-            .fn_type(&[context.i32_type().into()], false),
-        None,
-    )
+    const FN_NAME_CREATE_EXECUTABLE_CACHE: &str = "create_executable_cache";
+
+    if let Some(existing_function) = module.get_function(FN_NAME_CREATE_EXECUTABLE_CACHE) {
+        existing_function
+    } else {
+        module.add_function(
+            FN_NAME_CREATE_EXECUTABLE_CACHE,
+            types
+                .executable_cache(module)
+                .ptr_type(AddressSpace::Generic)
+                .fn_type(&[context.i32_type().into()], false),
+            None,
+        )
+    }
 }
 
 fn build_add_executable_cache_item_function<'ctx>(
@@ -157,21 +193,27 @@ fn build_add_executable_cache_item_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    module.add_function(
-        "add_executable_cache_item",
-        context.void_type().fn_type(
-            &[
-                types
-                    .executable_cache(module)
-                    .ptr_type(AddressSpace::Generic)
-                    .into(),
-                context.i32_type().into(),
-                types.string().into(),
-            ],
-            false,
-        ),
-        None,
-    )
+    const FN_NAME_ADD_EXECUTABLE_CACHE_ITEM: &str = "add_executable_cache_item";
+
+    if let Some(existing_function) = module.get_function(FN_NAME_ADD_EXECUTABLE_CACHE_ITEM) {
+        existing_function
+    } else {
+        module.add_function(
+            FN_NAME_ADD_EXECUTABLE_CACHE_ITEM,
+            context.void_type().fn_type(
+                &[
+                    types
+                        .executable_cache(module)
+                        .ptr_type(AddressSpace::Generic)
+                        .into(),
+                    context.i32_type().into(),
+                    types.string().into(),
+                ],
+                false,
+            ),
+            None,
+        )
+    }
 }
 
 fn build_read_from_executable_cache_function<'ctx>(
@@ -180,23 +222,29 @@ fn build_read_from_executable_cache_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    module.add_function(
-        "read_from_executable_cache",
-        types
-            .executable(module)
-            .ptr_type(AddressSpace::Generic)
-            .fn_type(
-                &[
-                    types
-                        .executable_cache(module)
-                        .ptr_type(AddressSpace::Generic)
-                        .into(),
-                    context.i32_type().into(),
-                ],
-                false,
-            ),
-        None,
-    )
+    const FN_NAME_READ_FROM_EXECTUABLE_CACHE: &str = "read_from_executable_cache";
+
+    if let Some(existing_function) = module.get_function(FN_NAME_READ_FROM_EXECTUABLE_CACHE) {
+        existing_function
+    } else {
+        module.add_function(
+            FN_NAME_READ_FROM_EXECTUABLE_CACHE,
+            types
+                .executable(module)
+                .ptr_type(AddressSpace::Generic)
+                .fn_type(
+                    &[
+                        types
+                            .executable_cache(module)
+                            .ptr_type(AddressSpace::Generic)
+                            .into(),
+                        context.i32_type().into(),
+                    ],
+                    false,
+                ),
+            None,
+        )
+    }
 }
 
 fn build_free_executable_cache_function<'ctx>(
@@ -205,17 +253,23 @@ fn build_free_executable_cache_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    module.add_function(
-        "free_executable_cache",
-        context.void_type().fn_type(
-            &[types
-                .executable_cache(module)
-                .ptr_type(AddressSpace::Generic)
-                .into()],
-            false,
-        ),
-        None,
-    )
+    const FN_NAME_FREE_EXECUTABLE_CACHE: &str = "free_executable_cache";
+
+    if let Some(existing_function) = module.get_function(FN_NAME_FREE_EXECUTABLE_CACHE) {
+        existing_function
+    } else {
+        module.add_function(
+            FN_NAME_FREE_EXECUTABLE_CACHE,
+            context.void_type().fn_type(
+                &[types
+                    .executable_cache(module)
+                    .ptr_type(AddressSpace::Generic)
+                    .into()],
+                false,
+            ),
+            None,
+        )
+    }
 }
 
 fn build_get_readout_bit_function<'ctx>(
@@ -224,25 +278,31 @@ fn build_get_readout_bit_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    let execution_result_type = types.execution_result(module);
-    let execution_result_pointer_type = execution_result_type.ptr_type(AddressSpace::Generic);
+    const FN_NAME_GET_READOUT_BIT: &str = "get_readout_bit";
 
-    let i64_type = context.i64_type();
+    if let Some(existing_function) = module.get_function(FN_NAME_GET_READOUT_BIT) {
+        existing_function
+    } else {
+        let execution_result_type = types.execution_result(module);
+        let execution_result_pointer_type = execution_result_type.ptr_type(AddressSpace::Generic);
 
-    let get_readout_bit_type = context.bool_type().fn_type(
-        &[
-            BasicMetadataTypeEnum::PointerType(execution_result_pointer_type),
-            BasicMetadataTypeEnum::IntType(i64_type),
-            BasicMetadataTypeEnum::IntType(i64_type),
-        ],
-        false,
-    );
+        let i64_type = context.i64_type();
 
-    module.add_function(
-        "get_readout_bit",
-        get_readout_bit_type,
-        Some(Linkage::External),
-    )
+        let get_readout_bit_type = context.bool_type().fn_type(
+            &[
+                BasicMetadataTypeEnum::PointerType(execution_result_pointer_type),
+                BasicMetadataTypeEnum::IntType(i64_type),
+                BasicMetadataTypeEnum::IntType(i64_type),
+            ],
+            false,
+        );
+
+        module.add_function(
+            FN_NAME_GET_READOUT_BIT,
+            get_readout_bit_type,
+            Some(Linkage::External),
+        )
+    }
 }
 
 fn build_set_param_function<'ctx>(
@@ -251,25 +311,31 @@ fn build_set_param_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    let executable_type = types.executable(module);
-    let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
+    const FN_NAME_SET_PARAM: &str = "set_param";
 
-    let string_type = types.string();
-    let name_type = string_type;
-    let index_type = context.i32_type();
-    let value_type = context.f64_type();
+    if let Some(existing_function) = module.get_function(FN_NAME_SET_PARAM) {
+        existing_function
+    } else {
+        let executable_type = types.executable(module);
+        let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
 
-    let set_param_type = context.void_type().fn_type(
-        &[
-            executable_pointer_type.into(),
-            name_type.into(),
-            index_type.into(),
-            value_type.into(),
-        ],
-        false,
-    );
+        let string_type = types.string();
+        let name_type = string_type;
+        let index_type = context.i32_type();
+        let value_type = context.f64_type();
 
-    module.add_function("set_param", set_param_type, Some(Linkage::External))
+        let set_param_type = context.void_type().fn_type(
+            &[
+                executable_pointer_type.into(),
+                name_type.into(),
+                index_type.into(),
+                value_type.into(),
+            ],
+            false,
+        );
+
+        module.add_function(FN_NAME_SET_PARAM, set_param_type, Some(Linkage::External))
+    }
 }
 
 fn build_panic_on_failure_function<'ctx>(
@@ -278,46 +344,67 @@ fn build_panic_on_failure_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    let execution_result_type = types.execution_result(module);
-    let execution_result_pointer_type = execution_result_type.ptr_type(AddressSpace::Generic);
+    const FN_NAME_PANIC_ON_FAILURE: &str = "panic_on_failure";
 
-    let panic_type = context.void_type().fn_type(
-        &[BasicMetadataTypeEnum::PointerType(
-            execution_result_pointer_type,
-        )],
-        false,
-    );
+    if let Some(existing_function) = module.get_function(FN_NAME_PANIC_ON_FAILURE) {
+        existing_function
+    } else {
+        let execution_result_type = types.execution_result(module);
+        let execution_result_pointer_type = execution_result_type.ptr_type(AddressSpace::Generic);
 
-    module.add_function("panic_on_failure", panic_type, Some(Linkage::External))
+        let panic_type = context.void_type().fn_type(
+            &[BasicMetadataTypeEnum::PointerType(
+                execution_result_pointer_type,
+            )],
+            false,
+        );
+
+        module.add_function(
+            FN_NAME_PANIC_ON_FAILURE,
+            panic_type,
+            Some(Linkage::External),
+        )
+    }
 }
 
 fn build_parameter_memory_region_name<'ctx>(
     _context: &'ctx Context,
     builder: &Builder<'ctx>,
-    _module: &Module<'ctx>,
+    module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> PointerValue<'ctx> {
-    let global_string = unsafe {
-        // NOTE: this segfaults if the builder is not already positioned within a basic block
-        // see https://github.com/TheDan64/inkwell/issues/32
-        builder.build_global_string(PARAMETER_MEMORY_REGION_NAME, "parameter_memory_region_name")
+    const GLOBAL_NAME_PARAM_MEM_REGION: &str = "parameter_memory_region_name";
+
+    let global_string = match module.get_global(GLOBAL_NAME_PARAM_MEM_REGION) {
+        Some(gv) => gv,
+        None => unsafe {
+            // NOTE: this segfaults if the builder is not already positioned within a basic block
+            // see https://github.com/TheDan64/inkwell/issues/32
+            builder.build_global_string(PARAMETER_MEMORY_REGION_NAME, GLOBAL_NAME_PARAM_MEM_REGION)
+        },
     };
+
     global_string.as_pointer_value().const_cast(types.string())
 }
 
 fn build_quantum_processor_id<'ctx>(
     _context: &'ctx Context,
     builder: &Builder<'ctx>,
-    _module: &Module<'ctx>,
+    module: &Module<'ctx>,
     types: &Types<'ctx>,
     target: &ExecutionTarget,
 ) -> Option<PointerValue<'ctx>> {
     if let ExecutionTarget::Qpu(quantum_processor_id) = target {
-        let global_string = unsafe {
-            // NOTE: this segfaults if the builder is not already positioned within a basic block
-            // see https://github.com/TheDan64/inkwell/issues/32
-            builder.build_global_string(quantum_processor_id, "quantum_processor_id")
+        const GLOBAL_NAME_QPU_ID: &str = "quantum_processor_id";
+        let global_string = match module.get_global(GLOBAL_NAME_QPU_ID) {
+            Some(gv) => gv,
+            None => unsafe {
+                // NOTE: this segfaults if the builder is not already positioned within a basic block
+                // see https://github.com/TheDan64/inkwell/issues/32
+                builder.build_global_string(quantum_processor_id, GLOBAL_NAME_QPU_ID)
+            },
         };
+
         Some(global_string.as_pointer_value().const_cast(types.string()))
     } else {
         None
@@ -330,19 +417,29 @@ fn build_wrap_in_shots_function<'ctx>(
     module: &Module<'ctx>,
     types: &Types<'ctx>,
 ) -> FunctionValue<'ctx> {
-    let executable_type = types.executable(module);
-    let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
-    let i32_type = context.i32_type();
+    const FN_NAME_WRAP_IN_SHOTS: &str = "wrap_in_shots";
 
-    let wrap_in_shots_type = context.void_type().fn_type(
-        &[
-            BasicMetadataTypeEnum::PointerType(executable_pointer_type),
-            BasicMetadataTypeEnum::IntType(i32_type),
-        ],
-        false,
-    );
+    if let Some(existing_function) = module.get_function(FN_NAME_WRAP_IN_SHOTS) {
+        existing_function
+    } else {
+        let executable_type = types.executable(module);
+        let executable_pointer_type = executable_type.ptr_type(AddressSpace::Generic);
+        let i32_type = context.i32_type();
 
-    module.add_function("wrap_in_shots", wrap_in_shots_type, Some(Linkage::External))
+        let wrap_in_shots_type = context.void_type().fn_type(
+            &[
+                BasicMetadataTypeEnum::PointerType(executable_pointer_type),
+                BasicMetadataTypeEnum::IntType(i32_type),
+            ],
+            false,
+        );
+
+        module.add_function(
+            FN_NAME_WRAP_IN_SHOTS,
+            wrap_in_shots_type,
+            Some(Linkage::External),
+        )
+    }
 }
 
 pub(crate) struct Values<'ctx> {
@@ -401,13 +498,21 @@ impl<'ctx> Values<'ctx> {
             .ok_or_else(|| eyre!("QIR expected entrypoint not found"))?;
         builder.position_at_end(basic_block);
 
-        let executable_cache = module.add_global(
-            types
-                .executable_cache(module)
-                .ptr_type(AddressSpace::Generic),
-            None,
-            "executable_cache",
-        );
+        let executable_cache = module
+            .get_global("executable_cache")
+            .or_else(|| {
+                Some(
+                    module.add_global(
+                        types
+                            .executable_cache(module)
+                            .ptr_type(AddressSpace::Generic),
+                        None,
+                        "executable_cache",
+                    ),
+                )
+            })
+            .ok_or_else(|| eyre::eyre!("no executable_cache found or added"))?;
+
         executable_cache.set_linkage(Linkage::Private);
         executable_cache.set_externally_initialized(false);
         let initializer = types

@@ -21,8 +21,8 @@ use log::{debug, info};
 use quil_rs::instruction::Vector;
 
 use crate::interop::instruction::{
-    get_conditional_branch_else_target, remove_instructions_in_safe_order,
-    replace_conditional_branch_target, replace_phi_clauses,
+    get_called_function_name, get_conditional_branch_else_target,
+    remove_instructions_in_safe_order, replace_conditional_branch_target, replace_phi_clauses,
 };
 use crate::{context::QCSCompilerContext, interop::call, interop::entrypoint::get_entry_function};
 
@@ -35,72 +35,81 @@ use super::PARAMETER_MEMORY_REGION_NAME;
 pub(crate) fn build_populate_executable_cache_function<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
 ) -> Result<FunctionValue<'ctx>> {
-    let populate_executable_array_function_type =
-        context.base_context.void_type().fn_type(&[], false);
-    let populate_executable_array_function = context.module.add_function(
-        "populate_executable_array",
-        populate_executable_array_function_type,
-        None,
-    );
-    let basic_block = context
-        .base_context
-        .append_basic_block(populate_executable_array_function, "entry");
+    const FN_NAME_POPULATE_EXECUTABLE_ARRAY: &str = "populate_executable_array";
 
-    context.builder.position_at_end(basic_block);
+    if let Some(existing_function) = context
+        .module
+        .get_function(FN_NAME_POPULATE_EXECUTABLE_ARRAY)
+    {
+        Ok(existing_function)
+    } else {
+        let populate_executable_array_function_type =
+            context.base_context.void_type().fn_type(&[], false);
+        let populate_executable_array_function = context.module.add_function(
+            FN_NAME_POPULATE_EXECUTABLE_ARRAY,
+            populate_executable_array_function_type,
+            None,
+        );
+        let basic_block = context
+            .base_context
+            .append_basic_block(populate_executable_array_function, "entry");
 
-    let actual_executable_cache = context
-        .builder
-        .build_call(
-            context.values.create_executable_cache(),
-            &[context
-                .base_context
-                .i32_type()
-                .const_int(context.quil_programs.len() as u64, false)
-                .into()],
-            "",
-        )
-        .try_as_basic_value()
-        .left()
-        .ok_or_else(|| eyre!("create_executable_cache does not have a return value"))?
-        .into_pointer_value();
+        context.builder.position_at_end(basic_block);
 
-    context.builder.build_store(
-        context.values.executable_cache().as_pointer_value(),
-        actual_executable_cache,
-    );
-
-    for index in 0..context.quil_programs.len() {
-        let program_text = context.quil_programs[index].to_string(true);
-
-        let quil_program_global_string = unsafe {
-            // NOTE: this segfaults if the builder is not already positioned within a basic block
-            // see https://github.com/TheDan64/inkwell/issues/32
-            context
-                .builder
-                .build_global_string(&program_text, "quil_program")
-        };
-
-        context.builder.build_call(
-            context.values.add_executable_cache_item(),
-            &[
-                actual_executable_cache.into(),
-                context
+        let actual_executable_cache = context
+            .builder
+            .build_call(
+                context.values.create_executable_cache(),
+                &[context
                     .base_context
                     .i32_type()
-                    .const_int(index as u64, false)
-                    .into(),
-                quil_program_global_string
-                    .as_pointer_value()
-                    .const_cast(context.types.string())
-                    .into(),
-            ],
-            "",
+                    .const_int(context.quil_programs.len() as u64, false)
+                    .into()],
+                "",
+            )
+            .try_as_basic_value()
+            .left()
+            .ok_or_else(|| eyre!("create_executable_cache does not have a return value"))?
+            .into_pointer_value();
+
+        context.builder.build_store(
+            context.values.executable_cache().as_pointer_value(),
+            actual_executable_cache,
         );
+
+        for index in 0..context.quil_programs.len() {
+            let program_text = context.quil_programs[index].to_string(true);
+
+            let quil_program_global_string = unsafe {
+                // NOTE: this segfaults if the builder is not already positioned within a basic block
+                // see https://github.com/TheDan64/inkwell/issues/32
+                context
+                    .builder
+                    .build_global_string(&program_text, "quil_program")
+            };
+
+            context.builder.build_call(
+                context.values.add_executable_cache_item(),
+                &[
+                    actual_executable_cache.into(),
+                    context
+                        .base_context
+                        .i32_type()
+                        .const_int(index as u64, false)
+                        .into(),
+                    quil_program_global_string
+                        .as_pointer_value()
+                        .const_cast(context.types.string())
+                        .into(),
+                ],
+                "",
+            );
+        }
+
+        context.builder.build_return(None);
+
+        Ok(populate_executable_array_function)
     }
-
-    context.builder.build_return(None);
-
-    Ok(populate_executable_array_function)
 }
 
 /// Mutate a context such that all contiguous instructions which may be transpiled by `transpile_instruction`
@@ -117,7 +126,14 @@ pub(crate) fn transpile_module(context: &mut QCSCompilerContext) -> Result<()> {
         .ok_or_else(|| eyre!("entrypoint function has no basic blocks"))?;
 
     match entry_basic_block.get_first_instruction() {
-        Some(instruction) => context.builder.position_before(&instruction),
+        Some(instruction) => {
+            if let Ok(Some(name)) = get_called_function_name(instruction) {
+                if name == "populate_executable_array" {
+                    return Ok(());
+                }
+            }
+            context.builder.position_before(&instruction);
+        }
         None => context.builder.position_at_end(entry_basic_block),
     };
 
