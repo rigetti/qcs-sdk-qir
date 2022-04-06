@@ -1,0 +1,201 @@
+on: [ push ] # TODO: after testing, change to release->created
+
+name: Release SDK & Utils (macos/linux)
+
+jobs:
+  build-sdk-helper-release:
+    name: Release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        rust:
+          - stable
+        llvm_version: [12, 13]
+    env:
+      C_SDK_VERSION: v0.1.0
+      LLVM_VERSION: ${{ matrix.llvm_version }}
+      TESTING_TAG: v0.0.0-local
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v2
+
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: ${{ matrix.rust }}
+        override: true
+
+    - name: Cache Rust environment
+      uses: Swatinem/rust-cache@v1
+
+    - name: Install LLVM
+      uses: KyleMayes/install-llvm-action@v1
+      with:
+        version: "${{ matrix.llvm_version }}.0"
+        cached: ${{ steps.cache-llvm.outputs.cache-hit }}
+
+    - name: Check LLVM installation
+      run: llvm-config --version
+
+    - name: Install missing LLVM deps
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-key adv --keyserver hkps://keyserver.ubuntu.com --recv-key C99B11DEB97541F0
+        sudo apt-get update && sudo apt-get install -y libtinfo5 cmake
+
+    - name: Install cargo-make
+      uses: actions-rs/cargo@v1
+      with:
+        command: install
+        args: --debug cargo-make
+
+    - name: Run cargo build, test, fmt, clippy
+      env:
+        LLVM_FEATURE: llvm${{ matrix.llvm_version }}-0
+      run: cargo make ci-flow
+
+    - name: Setup release build environment
+      run: |
+        # set defaults for dynamic CI variables when local/testing
+        CHECK_TAG=${{ github.tag }}
+        if [[ $CHECK_TAG = "" ]]; then
+          TAG=${TESTING_TAG}
+        else 
+          TAG=${{ github.tag }}
+        fi
+
+        SDK_BIN=qcs-sdk-qir
+        ARCH=$(uname -m)
+        OS=$(uname -s | awk '{print tolower($0)}')
+        DIST=${SDK_BIN}-llvm${{ env.LLVM_VERSION }}-${OS}-${ARCH}-${TAG}  
+        DIST_DIR=${DIST}/dist    
+        DIST_ABS_PATH=$(pwd)/${DIST_DIR}
+        ARCHIVE=${DIST}.tar.gz
+        CHECKSUM=${DIST}.checksum.txt
+
+        echo "TAG=${TAG}" >> $GITHUB_ENV
+        echo "SDK_BIN=${SDK_BIN}" >> $GITHUB_ENV
+        echo "ARCH=${ARCH}" >> $GITHUB_ENV
+        echo "OS=${OS}" >> $GITHUB_ENV
+        echo "DIST=${DIST}" >> $GITHUB_ENV
+        echo "DIST_DIR=${DIST_DIR}" >> $GITHUB_ENV
+        echo "DIST_ABS_PATH=${DIST_ABS_PATH}" >> $GITHUB_ENV
+        echo "ARCHIVE=${ARCHIVE}" >> $GITHUB_ENV
+        echo "CHECKSUM=${CHECKSUM}" >> $GITHUB_ENV
+
+        # print out all env variables
+        cat $GITHUB_ENV
+
+        # create paths to collect artifacts
+        mkdir -p ${DIST_ABS_PATH}/lib
+
+    - name: Install build environment dependencies
+      uses: lukka/get-cmake@latest
+
+    - name: Build release artifacts (linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        # build the QIR SDK binary
+        cargo build --bin ${{ env.SDK_BIN }} --release --features llvm${{ matrix.llvm_version }}-0
+        
+        # build the QCS C SDK shared library
+        git clone https://github.com/rigetti/qcs-sdk-c ../qcs-sdk-c
+        pushd ../qcs-sdk-c
+        git fetch --all --tags
+        git checkout tags/${{ env.C_SDK_VERSION}} -b build-qir-sdk-${tag}
+        cargo build --release
+        popd
+        
+        # build the SDK helper library
+        pushd helper
+        cp helper.h helper.c
+        clang -c -o libhelper.o helper.c -fPIC
+        clang -shared -o libhelper.so libhelper.o
+        popd
+
+    - name: Install xcode / devtools (macos)
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+      if: matrix.os == 'macos-latest'
+
+    - name: Build release artifacts (macos)
+      if: matrix.os == 'macos-latest'
+      run: |
+        # build the QIR SDK binary
+        cargo build --bin ${{ env.SDK_BIN }} --release --features llvm${{ matrix.llvm_version }}-0
+        
+        # build the QCS C SDK shared library
+        git clone https://github.com/rigetti/qcs-sdk-c ../qcs-sdk-c
+        pushd ../qcs-sdk-c
+        git fetch --all --tags
+        git checkout tags/${{ env.C_SDK_VERSION}} -b build-qir-sdk-${tag}
+        cargo build --release
+        popd
+        
+        # build the SDK helper library
+        pushd helper
+        cp helper.h helper.c
+        gcc-11 -L../../qcs-sdk-c/target/release -lqcs -dynamiclib helper.c -o libhelper.dylib
+        popd
+      
+    - name: Collect release artifacts (linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        # collect the QIR SDK binary
+        cp target/release/${{ env.SDK_BIN }} ${{ env.DIST_ABS_PATH }}
+        
+        # collect the licenses
+        cp LICENSE ${{ env.DIST_ABS_PATH }}
+
+        # collect the QCS C SDK shared library
+        pushd ../qcs-sdk-c
+        cp target/release/libqcs.so ${{ env.DIST_ABS_PATH }}/lib
+        popd
+
+        # collect the SDK helper library
+        pushd helper
+        cp libhelper.so ${{ env.DIST_ABS_PATH }}/lib
+        popd
+
+    - name: Collect release artifacts (macos)
+      if: matrix.os == 'macos-latest'
+      run: |
+        # collect the QIR SDK binary
+        cp target/release/${{ env.SDK_BIN }} ${{ env.DIST_ABS_PATH }}
+        
+        # collect the licenses
+        cp LICENSE ${{ env.DIST_ABS_PATH }}
+
+        # collect the QCS C SDK shared library
+        pushd ../qcs-sdk-c
+        cp target/release/libqcs.dylib ${{ env.DIST_ABS_PATH }}/lib
+        popd
+
+        # collect the SDK helper library
+        pushd helper
+        cp libhelper.dylib ${{ env.DIST_ABS_PATH }}/lib
+        popd
+
+    - name: Create release archive
+      run: |
+        tar -cvzf ${{ env.ARCHIVE }} ${{ env.DIST_DIR }}/*
+        ls -ll ${ARCHIVE}
+        shasum -a 256 ${{ env.ARCHIVE }} > ${{ env.CHECKSUM }}
+
+    - name: Upload archive to CI summary
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.DIST }}-artifacts.zip
+        path: |
+          ${{ env.ARCHIVE }}
+          ${{ env.CHECKSUM }}
+    
+    - name: Upload archive to Release ${{ env.TAG }}
+      if: env.TAG != env.TESTING_TAG
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ${{ env.ARCHIVE }}
+          ${{ env.CHECKSUM }}
