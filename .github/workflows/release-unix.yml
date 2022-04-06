@@ -168,8 +168,9 @@ jobs:
         # collect the QIR SDK binary
         cp target/release/${{ env.SDK_BIN }} ${{ env.DIST_ABS_PATH }}
         
-        # collect the licenses
+        # collect the licenses & README
         cp LICENSE ${{ env.DIST_ABS_PATH }}
+        cp ./github/workflows/README.release.md ${{ env.DIST_ABS_PATH }}/README.md
 
         # collect the QCS C SDK shared library
         pushd ../qcs-sdk-c
