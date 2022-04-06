@@ -1,4 +1,6 @@
-on: [ push ] # TODO: after testing, change to release->created
+on:
+  release:
+    types: [created]
 
 name: Release SDK & Utils (macos/linux)
 
@@ -69,7 +71,7 @@ jobs:
         ARCH=$(uname -m)
         OS=$(uname -s | awk '{print tolower($0)}')
         DIST=${SDK_BIN}-llvm${{ env.LLVM_VERSION }}-${OS}-${ARCH}-${TAG}  
-        DIST_DIR=${DIST}/dist    
+        DIST_DIR=${DIST}/dist
         DIST_ABS_PATH=$(pwd)/${DIST_DIR}
         ARCHIVE=${DIST}.tar.gz
         CHECKSUM=${DIST}.checksum.txt
@@ -110,7 +112,7 @@ jobs:
         # build the SDK helper library
         pushd helper
         cp helper.h helper.c
-        clang -c -o libhelper.o helper.c -fPIC
+        clang -c -o libhelper.o helper.c -fPIE
         clang -shared -o libhelper.so libhelper.o
         popd
 
@@ -146,8 +148,9 @@ jobs:
         # collect the QIR SDK binary
         cp target/release/${{ env.SDK_BIN }} ${{ env.DIST_ABS_PATH }}
         
-        # collect the licenses
+        # collect the licenses & README
         cp LICENSE ${{ env.DIST_ABS_PATH }}
+        cp ./github/workflows/README.release.md ${{ env.DIST_ABS_PATH }}/README.md
 
         # collect the QCS C SDK shared library
         pushd ../qcs-sdk-c
