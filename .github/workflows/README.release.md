@@ -10,24 +10,25 @@ Thank you for downloading the qcs-sdk-qir toolkit. In this release, you should f
 
 In order to transform QIR programs, please follow these steps (take note of platform-specificity):
 
-### Linux
 
 ```bash 
+export ARCHIVE_NAME=qcs-sdk-qir-llvm12-linux-x86_64-#TAG#
+
 # verify the download:
-shasum -c qcs-sdk-qir-llvm12-darwin-x86_64-v0.0.0-local.checksum.txt
+shasum -c $ARCHIVE_NAME.checksum.txt
 
 # exract the compressed archive
-tar xzf qcs-sdk-qir-llvm12-darwin-x86_64-v0.0.0-local.tar.gz
+tar xzf $ARCHIVE_NAME.tar.gz
 
 # enter the dist directory to find the release artifacts
-cd qcs-sdk-qir-llvm12-darwin-x86_64-v0.0.0-local/dist
+cd $ARCHIVE_NAME/dist
 
 # export the library paths so the linker can find them:
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib
 
 # transform a QIR program to contain Rigetti's requirements:
 # hint: qcs-sdk-qir --help (for all options)
-qcs-sdk-qir transform --add-main-entrypoint input.bc output.bc
+./qcs-sdk-qir transform --add-main-entrypoint input.bc output.bc
 
 # compile the transformed program to an executable
 clang -Llib -lqcs -Llib -lhelper output.bc -o program
@@ -39,14 +40,16 @@ clang -Llib -lqcs -Llib -lhelper output.bc -o program
 ### MacOS
 
 ```bash
+export ARCHIVE_NAME=qcs-sdk-qir-llvm12-darwin-x86_64-#TAG#
+
 # verify the download:
-shasum -c qcs-sdk-qir-llvm12-darwin-x86_64-v0.0.0-local.checksum.txt
+shasum -c $ARCHIVE_NAME.checksum.txt
 
 # exract the compressed archive
-tar xzf qcs-sdk-qir-llvm12-darwin-x86_64-v0.0.0-local.tar.gz
+tar xzf $ARCHIVE_NAME.tar.gz
 
 # enter the dist directory to find the release artifacts
-cd qcs-sdk-qir-llvm12-darwin-x86_64-v0.0.0-local/dist
+cd $ARCHIVE_NAME/dist
 
 # you may need to remove the quarantined attribute from the binary and shared libraries
 sudo xattr -r -d com.apple.quarantine qcs-sdk-qir lib/*
@@ -56,7 +59,7 @@ export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:./lib
 
 # transform a QIR program to contain Rigetti's requirements:
 # hint: qcs-sdk-qir --help (for all options)
-qcs-sdk-qir transform --add-main-entrypoint input.bc output.bc
+./qcs-sdk-qir transform --add-main-entrypoint input.bc output.bc
 
 # compile the transformed program to an executable
 clang -Llib -lqcs -Llib -lhelper output.bc -o program
