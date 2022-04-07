@@ -596,6 +596,32 @@ pub(crate) fn quantum_instruction<'ctx>(
                             )?;
                             true
                         }
+                        "y" => {
+                            add_gate_instruction(
+                                pattern_context,
+                                &arguments,
+                                &function_name,
+                                "Y",
+                                adjoint,
+                                controlled,
+                                0,
+                                1,
+                            )?;
+                            true
+                        }
+                        "z" => {
+                            add_gate_instruction(
+                                pattern_context,
+                                &arguments,
+                                &function_name,
+                                "Z",
+                                adjoint,
+                                controlled,
+                                0,
+                                1,
+                            )?;
+                            true
+                        }
                         "mz" => {
                             let qubit =
                                 *match_qis_argument!(Qubit, arguments, 0, function_name.as_str())?;
