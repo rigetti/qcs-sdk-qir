@@ -60,11 +60,11 @@ jobs:
     - name: Setup release build environment
       run: |
         # set defaults for dynamic CI variables when local/testing
-        CHECK_TAG=${{ github.tag }}
+        CHECK_TAG=${{ github.ref_name }}
         if [[ $CHECK_TAG = "" ]]; then
-          TAG=${TESTING_TAG}
+          TAG=${{ env.TESTING_TAG }}
         else 
-          TAG=${{ github.tag }}
+          TAG=${{ github.ref_name }}
         fi
 
         SDK_BIN=qcs-sdk-qir
@@ -105,7 +105,7 @@ jobs:
         git clone https://github.com/rigetti/qcs-sdk-c ../qcs-sdk-c
         pushd ../qcs-sdk-c
         git fetch --all --tags
-        git checkout tags/${{ env.C_SDK_VERSION}} -b build-qir-sdk-${tag}
+        git checkout tags/${{ env.C_SDK_VERSION}} -b build-qir-sdk-${{ env.TAG}}
         cargo build --release
         popd
         
@@ -132,7 +132,7 @@ jobs:
         git clone https://github.com/rigetti/qcs-sdk-c ../qcs-sdk-c
         pushd ../qcs-sdk-c
         git fetch --all --tags
-        git checkout tags/${{ env.C_SDK_VERSION}} -b build-qir-sdk-${tag}
+        git checkout tags/${{ env.C_SDK_VERSION}} -b build-qir-sdk-${{ env.TAG}}
         cargo build --release
         popd
         
