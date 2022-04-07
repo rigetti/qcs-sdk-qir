@@ -1,0 +1,8 @@
+---
+source: src/transform/shot_count_block/quil.rs
+expression: result.program.to_string(true)
+---
+DECLARE ro BIT[1]
+CCNOT 0 1 2
+MEASURE 2 ro[0]
+

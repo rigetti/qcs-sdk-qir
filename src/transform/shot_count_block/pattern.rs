@@ -487,6 +487,19 @@ pub(crate) fn quantum_instruction<'ctx>(
                     let arguments = get_qis_function_arguments(context, instruction)?;
 
                     let matched = match operation {
+                        "toffoli" => {
+                            add_gate_instruction(
+                                pattern_context,
+                                &arguments,
+                                &function_name,
+                                "CCNOT",
+                                adjoint,
+                                controlled,
+                                0,
+                                3,
+                            )?;
+                            true
+                        }
                         "cnot" => {
                             add_gate_instruction(
                                 pattern_context,
