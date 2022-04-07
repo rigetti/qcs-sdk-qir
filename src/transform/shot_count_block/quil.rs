@@ -209,5 +209,6 @@ mod test {
         make_snapshot_test!(vqe_iteration);
         make_snapshot_test!(cartesian_rotations);
         make_snapshot_test!(pauli_xyz);
+        make_snapshot_test!(s_and_adjoint_s);
     }
 }
