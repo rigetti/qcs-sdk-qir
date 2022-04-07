@@ -150,8 +150,8 @@ jobs:
         
         # collect the licenses & README
         cp LICENSE ${{ env.DIST_ABS_PATH }}
-        sed -i -- 's/#TAG#/${{ env.TAG }}/g' README.release.md
-        cp ./github/workflows/README.release.md ${{ env.DIST_ABS_PATH }}/README.md
+        sed -i -- 's/#TAG#/${{ env.TAG }}/g' .github/workflows/README.release.md
+        cp .github/workflows/README.release.md ${{ env.DIST_ABS_PATH }}/README.md
 
         # collect the QCS C SDK shared library
         pushd ../qcs-sdk-c
@@ -171,8 +171,8 @@ jobs:
         
         # collect the licenses & README
         cp LICENSE ${{ env.DIST_ABS_PATH }}
-        sed -i -- 's/#TAG#/${{ env.TAG }}/g' README.release.md
-        cp ./github/workflows/README.release.md ${{ env.DIST_ABS_PATH }}/README.md
+        sed -i -- 's/#TAG#/${{ env.TAG }}/g' .github/workflows/README.release.md
+        cp .github/workflows/README.release.md ${{ env.DIST_ABS_PATH }}/README.md
 
         # collect the QCS C SDK shared library
         pushd ../qcs-sdk-c
