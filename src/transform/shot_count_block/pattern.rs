@@ -583,6 +583,19 @@ pub(crate) fn quantum_instruction<'ctx>(
                             )?;
                             true
                         }
+                        "t" => {
+                            add_gate_instruction(
+                                pattern_context,
+                                &arguments,
+                                &function_name,
+                                "T",
+                                adjoint,
+                                controlled,
+                                0,
+                                1,
+                            )?;
+                            true
+                        }
                         "x" => {
                             add_gate_instruction(
                                 pattern_context,

@@ -1,0 +1,82 @@
+---
+source: src/transform/shot_count_block/qir.rs
+expression: context.module.print_to_string().to_str().unwrap()
+---
+; ModuleID = 'qcs'
+source_filename = "tests/fixtures/programs/t_and_adjoint_t.ll"
+
+%ExecutableCache = type opaque
+%Qubit = type opaque
+%Executable = type opaque
+%ExecutionResult = type opaque
+
+@executable_cache = private global %ExecutableCache* null
+@parameter_memory_region_name = private unnamed_addr constant [12 x i8] c"__qir_param\00", align 1
+@quil_program = private unnamed_addr constant [34 x i8] c"DECLARE ro BIT[0]\0ADAGGER T 0\0AT 0\0A\00", align 1
+
+declare void @__quantum__qis__t__adj(%Qubit*) local_unnamed_addr
+
+declare void @__quantum__qis__t__body(%Qubit*) local_unnamed_addr
+
+define internal fastcc void @QuantumApplication__Run__body() unnamed_addr {
+entry:
+  call void @populate_executable_array()
+  br label %body_execution
+
+body:                                             ; preds = %body, %body_execution
+  %0 = phi i64 [ %1, %body ], [ 1, %body_execution ]
+  %1 = add nuw nsw i64 %0, 1
+  %2 = icmp ult i64 %0, 1000
+  br i1 %2, label %body, label %body_cleanup
+
+body_cleanup:                                     ; preds = %body
+  call void @free_execution_result(%ExecutionResult* %4)
+  br label %exit
+
+body_execution:                                   ; preds = %entry, <null operand!>
+  %3 = call %Executable* @executable_from_quil(i8* getelementptr inbounds ([34 x i8], [34 x i8]* @quil_program, i32 0, i32 0))
+  call void @wrap_in_shots(%Executable* %3, i32 1000)
+  %4 = call %ExecutionResult* @execute_on_qvm(%Executable* %3)
+  call void @panic_on_failure(%ExecutionResult* %4)
+  br label %body
+
+5:                                                ; No predecessors!
+  br label %exit
+
+exit:                                             ; preds = %body_cleanup, %5, <null operand!>
+  ret void
+}
+
+declare %Executable* @executable_from_quil(i8*)
+
+declare %ExecutionResult* @execute_on_qpu(%Executable*, i8*)
+
+declare %ExecutionResult* @execute_on_qvm(%Executable*)
+
+declare void @free_executable(%Executable*)
+
+declare void @free_execution_result(%ExecutionResult*)
+
+declare i1 @get_readout_bit(%ExecutionResult*, i64, i64)
+
+declare void @panic_on_failure(%ExecutionResult*)
+
+declare void @set_param(%Executable*, i8*, i32, double)
+
+declare void @wrap_in_shots(%Executable*, i32)
+
+declare %ExecutableCache* @create_executable_cache(i32)
+
+declare void @add_executable_cache_item(%ExecutableCache*, i32, i8*)
+
+declare %Executable* @read_from_executable_cache(%ExecutableCache*, i32)
+
+declare void @free_executable_cache(%ExecutableCache*)
+
+define void @populate_executable_array() {
+entry:
+  %0 = call %ExecutableCache* @create_executable_cache(i32 0)
+  store %ExecutableCache* %0, %ExecutableCache** @executable_cache, align 8
+  ret void
+}
+
