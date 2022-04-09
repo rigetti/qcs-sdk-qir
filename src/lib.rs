@@ -17,6 +17,7 @@
 use eyre::{Result, WrapErr};
 use inkwell::context::Context;
 use inkwell::module::Module;
+use serde::Serialize;
 
 use context::context::ContextOptions;
 pub use context::target::ExecutionTarget;
@@ -57,6 +58,20 @@ pub fn patch_qir_with_qcs<'ctx>(
         crate::interop::entrypoint::add_main_entrypoint(&mut context)?;
     }
     Ok(context.module)
+}
+
+/// Signifies output to be recorded at the end of program execution
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RecordedOutput {
+    // TODO: other types?
+    ShotStart,
+    ShotEnd,
+    ReadoutOffset(u64),
+    TupleStart,
+    TupleEnd,
+    ArrayStart,
+    ArrayEnd,
 }
 
 pub struct PatchOptions {

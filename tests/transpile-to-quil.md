@@ -4,14 +4,14 @@ To transpile an input QIR program to Quil, run the CLI as shown here:
 
 ```
 $ qcs-sdk-qir transpile-to-quil tests/fixtures/programs/bell_state.bc
-shot count: 42
-program: DECLARE ro BIT[2]
-H 0
-CNOT 0 1
-MEASURE 0 ro[0]
-MEASURE 1 ro[1]
-
-
+{
+  "program": "DECLARE ro BIT[2]/nH 0/nCNOT 0 1/nMEASURE 0 ro[0]/nMEASURE 1 ro[1]/n",
+  "shot_count": 42,
+  "recorded_output": [
+    "shot_start",
+    "shot_end"
+  ]
+}
 
 ```
 

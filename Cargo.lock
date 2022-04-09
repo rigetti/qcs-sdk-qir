@@ -660,6 +660,8 @@ dependencies = [
  "num-complex",
  "quil-rs",
  "regex",
+ "serde",
+ "serde_json",
  "trycmd",
 ]
 
