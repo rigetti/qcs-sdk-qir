@@ -1,7 +1,8 @@
 # Rigetti QIR SDK
 
-Thank you for downloading the qcs-sdk-qir toolkit. In this release, you should find the following files:
+Thank you for downloading the `qcs-sdk-qir` toolkit. 
 
+In this release, you should find the following files:
 - `qcs-sdk-qir`: an executable binary used to transform QIR programs
 - `lib/libhelper.{dylib,so}`: a shared library to ease the use of the QCS SDK 
 - `lib/libqcs.{dylib,so}`: a shared library to handle communication between your QIR program and Rigetti's Quantum Cloud Services
@@ -13,7 +14,7 @@ In order to transform QIR programs, please follow these steps (take note of plat
 ### Linux
 
 ```bash 
-export ARCHIVE_NAME=qcs-sdk-qir-llvm12-linux-x86_64-#TAG#
+export ARCHIVE_NAME=qcs-sdk-qir-llvm#LLVM_VERSION#-linux-x86_64-#TAG#
 
 # verify the download:
 shasum -c $ARCHIVE_NAME.checksum.txt
@@ -41,7 +42,7 @@ clang -Llib -lqcs -Llib -lhelper output.bc -o program
 ### MacOS
 
 ```bash
-export ARCHIVE_NAME=qcs-sdk-qir-llvm12-darwin-x86_64-#TAG#
+export ARCHIVE_NAME=qcs-sdk-qir-llvm#LLVM_VERSION#-darwin-x86_64-#TAG#
 
 # verify the download:
 shasum -c $ARCHIVE_NAME.checksum.txt

@@ -1,6 +1,8 @@
 [env]
-RUST_BACKTRACE=0
-LLVM_FEATURE = {value = "llvm13-0", condition = {env_not_set = ["LLVM_FEATURE"]}}
+RUST_BACKTRACE = 0
+LLVM_FEATURE = { value = "llvm13-0", condition = { env_not_set = [
+    "LLVM_FEATURE",
+] } }
 
 [tasks.assemble-llvm]
 command = "find"
@@ -23,3 +25,10 @@ args = ["build", "--features", "${LLVM_FEATURE}"]
 
 [tasks.test]
 args = ["test", "--features", "${LLVM_FEATURE}"]
+
+[tasks.quick-release]
+script = [
+    "./scripts/release/setup.sh",
+    "./scripts/release/build.sh",
+    "./scripts/release/archive.sh",
+]
