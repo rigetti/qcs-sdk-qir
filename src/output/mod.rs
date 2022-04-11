@@ -1,0 +1,86 @@
+#![deny(clippy::pedantic)]
+
+// Copyright 2022 Rigetti Computing
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+pub mod debug;
+pub use debug::DebugOutputFormat;
+
+use crate::RecordedOutput;
+
+use qcs::ExecutionResult;
+use thiserror::Error;
+
+/// All errors that may be returned from `qcs-sdk-output-format` crate.
+#[derive(Error, Debug)]
+pub enum Error {
+    /// The `ExecutionResult` is a type that is not implemented.
+    #[error("the execution result type `{0}` is unimplemented")]
+    UnimplementedResultType(String),
+    /// Encountered when `ExecutionResult` data was indexed out-of-range.
+    #[error("No data was available in the `ExecutionResult` for shot {0} at index {1}")]
+    NoShotDataAtIndex(usize, usize),
+}
+
+/// An [`OutputFormat`] describes the behavior required to translate QCS [`ExecutionResult`] values
+/// into an environment-specific output format.
+pub trait OutputFormat: Into<String> {
+    /// While some [`RecordedOutput`] and [`ExecutionResult`] variants may be unimplemented for
+    /// various output formats, this provides an interface that can fail. Once all variants can be
+    /// impelemented, a `new` function can be added and this deprecated.
+    ///
+    /// # Errors
+    ///
+    /// See [`enum@Error`].
+    fn try_new(result: &ExecutionResult, mapping: &[RecordedOutput]) -> Result<Self, Error>
+    where
+        Self: Sized;
+}
+
+/// A generic function over `F`: [`OutputFormat`], which attempts to format program output based on
+/// the `&ExecutionResult` and `&[RecordedOutput]` provided. Caller must specify the concrete
+/// implementation of the `OutputFormat`, e.g. using `DebugOutputFormat` in this crate.
+///
+/// While some [`RecordedOutput`] and [`ExecutionResult`] variants may be unimplemented for various
+/// output formats, this provides an interface that can fail. Once all variants can be
+/// impelemented, a `format` function can be added and this deprecated.
+///
+/// # Errors
+///
+/// See `Error`.
+///
+/// ```
+/// pub use qcs_sdk_qir::output::{try_format, DebugOutputFormat, Error};
+/// use qcs::ExecutionResult;
+/// use qcs_sdk_qir::RecordedOutput;
+///
+/// fn format_output() -> Result<String, Error> {
+///     // in practice, `result` and `mapping` would be provided to you from other QCS SDK
+///     // function calls, not constructed manually as done here for demonstration purposes.
+///     let result = &ExecutionResult::I8(vec![vec![1]]);
+///     let mapping: &[RecordedOutput] = &[
+///         RecordedOutput::ShotStart, RecordedOutput::ReadoutOffset(0), RecordedOutput::ShotEnd
+///     ];
+///
+///     let output = try_format::<DebugOutputFormat>(result, mapping)?;
+///     assert_eq!(output.lines().count(), 3);
+///     Ok(output)
+/// }
+/// ```
+pub fn try_format<F>(result: &ExecutionResult, mapping: &[RecordedOutput]) -> Result<String, Error>
+where
+    F: OutputFormat,
+{
+    F::try_new(result, mapping).map(Into::into)
+}
