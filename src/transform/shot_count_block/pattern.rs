@@ -506,13 +506,17 @@ pub(crate) fn rt_record_instruction<'ctx>(
                                 let index = pattern_context.read_result_mapping.get(result_index).ok_or_else(|| eyre!("Result index {} was never the target of a measurement operation", result_index))?;
                                 pattern_context
                                     .recorded_output
-                                    .push(RecordedOutput::ReadoutOffset(*index));
+                                    .push(RecordedOutput::ResultReadoutOffset(*index));
                             } else {
-                                // TODO: Support more recorded outputs
-                                return Err(eyre!("malformed rt__record instrinsic"));
+                                return Err(eyre!(
+                                    "malformed or missing arguments for: __quantum_rt__{}_record_output",
+                                    record_type
+                                ));
                             }
                         }
-                        "bool" | "integer" | "double" => todo!(),
+                        "bool" | "integer" | "double" => {
+                            return Err(eyre!("unimplemented record type: {}", record_type));
+                        }
                         "tuple_start" => pattern_context
                             .recorded_output
                             .push(RecordedOutput::TupleStart),
@@ -526,7 +530,6 @@ pub(crate) fn rt_record_instruction<'ctx>(
                             .recorded_output
                             .push(RecordedOutput::ArrayEnd),
                         _ => {
-                            debug!("didn't match a type record name");
                             return Ok(None);
                         }
                     }

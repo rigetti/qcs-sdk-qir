@@ -18,6 +18,8 @@
 use eyre::{eyre, Result};
 use inkwell::{basic_block::BasicBlock, values::FunctionValue};
 use quil_rs::instruction::Vector;
+
+#[cfg(feature = "serde_support")]
 use serde::{ser::SerializeStruct, Serialize, Serializer};
 
 use crate::{context::QCSCompilerContext, interop::entrypoint::get_entry_function, RecordedOutput};
@@ -36,6 +38,7 @@ pub struct ProgramOutput {
     pub recorded_output: Vec<RecordedOutput>,
 }
 
+#[cfg(feature = "serde_support")]
 impl Serialize for ProgramOutput {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

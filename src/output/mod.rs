@@ -28,11 +28,17 @@ pub enum Error {
     /// The `ExecutionResult` is a type that is not implemented.
     #[error("the execution result type `{0}` is unimplemented")]
     UnimplementedResultType(String),
+
+    /// The `RecordedOutput` is a type that is not implemented.
+    #[error("the record type `{0}` is unimplemented")]
+    UnimplementedRecordType(String),
+
     /// Encountered when `ExecutionResult` data was indexed out-of-range.
-    #[error("No data was available in the `ExecutionResult` for shot {0} at index {1}")]
+    #[error("No data was available in the `ExecutionResult` for shot ID {0} at index {1}")]
     NoShotDataAtIndex(usize, usize),
 }
 
+#[allow(clippy::module_name_repetitions)]
 /// An [`OutputFormat`] describes the behavior required to translate QCS [`ExecutionResult`] values
 /// into an environment-specific output format.
 pub trait OutputFormat: Into<String> {
@@ -70,7 +76,7 @@ pub trait OutputFormat: Into<String> {
 ///     // function calls, not constructed manually as done here for demonstration purposes.
 ///     let result = &ExecutionResult::I8(vec![vec![1]]);
 ///     let mapping: &[RecordedOutput] = &[
-///         RecordedOutput::ShotStart, RecordedOutput::ReadoutOffset(0), RecordedOutput::ShotEnd
+///         RecordedOutput::ShotStart, RecordedOutput::ResultReadoutOffset(0), RecordedOutput::ShotEnd
 ///     ];
 ///
 ///     let output = try_format::<DebugOutputFormat>(result, mapping)?;

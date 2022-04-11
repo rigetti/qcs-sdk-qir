@@ -45,7 +45,7 @@ impl OutputFormat for DebugOutputFormat {
                             output.push(format!("[shot:{} end]", shot_id));
                             shot_idx += 1;
                         }
-                        RecordedOutput::ReadoutOffset(index) => {
+                        RecordedOutput::ResultReadoutOffset(index) => {
                             // TODO: determine if we need the upstream `index` to be 64-bit.
                             #[allow(clippy::cast_possible_truncation)]
                             let index = *index as usize;
@@ -57,6 +57,14 @@ impl OutputFormat for DebugOutputFormat {
                             } else {
                                 return Err(Error::NoShotDataAtIndex(shot_id, index));
                             }
+                        }
+                        RecordedOutput::BoolReadoutOffset(..)
+                        | RecordedOutput::IntegerReadoutOffset(..)
+                        | RecordedOutput::DoubleReadoutOffset(..) => {
+                            return Err(Error::UnimplementedRecordType(format!(
+                                "{:?}",
+                                recorded_output
+                            )))
                         }
                         RecordedOutput::TupleStart => {
                             output.push(format!("[shot:{} tuple_start]", shot_id));
@@ -98,22 +106,22 @@ fn test_execution_result_debug_output() {
     ]);
     let mapping = [
         RecordedOutput::ShotStart,
-        RecordedOutput::ReadoutOffset(0),
-        RecordedOutput::ReadoutOffset(1),
-        RecordedOutput::ReadoutOffset(2),
+        RecordedOutput::ResultReadoutOffset(0),
+        RecordedOutput::ResultReadoutOffset(1),
+        RecordedOutput::ResultReadoutOffset(2),
         RecordedOutput::ShotEnd,
         RecordedOutput::ShotStart,
-        RecordedOutput::ReadoutOffset(0),
-        RecordedOutput::ReadoutOffset(1),
-        RecordedOutput::ReadoutOffset(2),
-        RecordedOutput::ReadoutOffset(3),
+        RecordedOutput::ResultReadoutOffset(0),
+        RecordedOutput::ResultReadoutOffset(1),
+        RecordedOutput::ResultReadoutOffset(2),
+        RecordedOutput::ResultReadoutOffset(3),
         RecordedOutput::ShotEnd,
         RecordedOutput::ShotStart,
-        RecordedOutput::ReadoutOffset(0),
-        RecordedOutput::ReadoutOffset(1),
-        RecordedOutput::ReadoutOffset(2),
-        RecordedOutput::ReadoutOffset(3),
-        RecordedOutput::ReadoutOffset(4),
+        RecordedOutput::ResultReadoutOffset(0),
+        RecordedOutput::ResultReadoutOffset(1),
+        RecordedOutput::ResultReadoutOffset(2),
+        RecordedOutput::ResultReadoutOffset(3),
+        RecordedOutput::ResultReadoutOffset(4),
         RecordedOutput::ShotEnd,
     ];
 
@@ -153,22 +161,22 @@ fn test_out_of_range_debug_output() {
     let execution_result = ExecutionResult::I8(vec![vec![1, 2, 3], vec![10, 20, 30]]);
     let mapping = [
         RecordedOutput::ShotStart,
-        RecordedOutput::ReadoutOffset(0),
-        RecordedOutput::ReadoutOffset(1),
-        RecordedOutput::ReadoutOffset(2),
+        RecordedOutput::ResultReadoutOffset(0),
+        RecordedOutput::ResultReadoutOffset(1),
+        RecordedOutput::ResultReadoutOffset(2),
         RecordedOutput::ShotEnd,
         RecordedOutput::ShotStart,
-        RecordedOutput::ReadoutOffset(0),
-        RecordedOutput::ReadoutOffset(1),
-        RecordedOutput::ReadoutOffset(2),
-        RecordedOutput::ReadoutOffset(3),
+        RecordedOutput::ResultReadoutOffset(0),
+        RecordedOutput::ResultReadoutOffset(1),
+        RecordedOutput::ResultReadoutOffset(2),
+        RecordedOutput::ResultReadoutOffset(3),
         RecordedOutput::ShotEnd,
         RecordedOutput::ShotStart,
-        RecordedOutput::ReadoutOffset(0),
-        RecordedOutput::ReadoutOffset(1),
-        RecordedOutput::ReadoutOffset(2),
-        RecordedOutput::ReadoutOffset(3),
-        RecordedOutput::ReadoutOffset(4),
+        RecordedOutput::ResultReadoutOffset(0),
+        RecordedOutput::ResultReadoutOffset(1),
+        RecordedOutput::ResultReadoutOffset(2),
+        RecordedOutput::ResultReadoutOffset(3),
+        RecordedOutput::ResultReadoutOffset(4),
         RecordedOutput::ShotEnd,
     ];
 

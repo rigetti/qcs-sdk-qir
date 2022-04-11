@@ -17,6 +17,8 @@
 use eyre::{Result, WrapErr};
 use inkwell::context::Context;
 use inkwell::module::Module;
+
+#[cfg(feature = "serde_support")]
 use serde::Serialize;
 
 use context::context::ContextOptions;
@@ -62,13 +64,19 @@ pub fn patch_qir_with_qcs<'ctx>(
 }
 
 /// Signifies output to be recorded at the end of program execution
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Clone, Debug)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(Serialize),
+    serde(rename_all = "snake_case")
+)]
 pub enum RecordedOutput {
-    // TODO: other types?
     ShotStart,
     ShotEnd,
-    ReadoutOffset(u64),
+    ResultReadoutOffset(u64),
+    BoolReadoutOffset(u64),
+    IntegerReadoutOffset(u64),
+    DoubleReadoutOffset(u64),
     TupleStart,
     TupleEnd,
     ArrayStart,
