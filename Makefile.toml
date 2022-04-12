@@ -4,8 +4,12 @@ LLVM_FEATURE = { value = "llvm13-0", condition = { env_not_set = [
     "LLVM_FEATURE",
 ] } }
 PROFILE = { value = "dev", condition = { env_not_set = ["PROFILE"] } }
-C_SDK_BUILD = { value = "1", condition = { env_not_set = ["C_SDK_BUILD"] } }
-QIR_SDK_BUILD = { value = "1", condition = { env_not_set = ["QIR_SDK_BUILD"] } }
+NO_C_SDK_BUILD = { value = "0", condition = { env_not_set = [
+    "NO_C_SDK_BUILD",
+] } }
+NO_QIR_SDK_BUILD = { value = "0", condition = { env_not_set = [
+    "NO_QIR_SDK_BUILD",
+] } }
 
 [tasks.assemble-llvm]
 command = "find"
@@ -34,7 +38,10 @@ command = "./scripts/release/setup.sh"
 
 [tasks.release-build]
 command = "./scripts/release/build.sh"
-args = ["C_SDK_BUILD: ${C_SDK_BUILD}", "QIR_SDK_BUILD: ${QIR_SDK_BUILD}"]
+args = [
+    "NO_C_SDK_BUILD: ${NO_C_SDK_BUILD}",
+    "NO_QIR_SDK_BUILD: ${NO_QIR_SDK_BUILD}",
+]
 
 [tasks.release-archive]
 command = "./scripts/release/archive.sh"

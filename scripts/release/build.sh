@@ -4,14 +4,14 @@ set -xeo pipefail
 source .release-env
 
 # build the QIR SDK binary
-if [[ $QIR_SDK_BUILD -eq 1 ]]; then
+if [[ $NO_QIR_SDK_BUILD -eq 0 ]]; then
     cargo build --bin ${SDK_BIN} --release --features llvm${LLVM_VERSION}-0
 else 
     echo "Skipping QIR SDK build."
 fi
 
 # build the QCS C SDK shared library
-if [[ $C_SDK_BUILD -eq 1 ]]; then
+if [[ $NO_C_SDK_BUILD -eq 0 ]]; then
     rm -rf ${TMP_DEPS_ABS_PATH}/qcs-sdk-c
     git clone https://github.com/rigetti/qcs-sdk-c ${TMP_DEPS_ABS_PATH}/qcs-sdk-c
     pushd ${TMP_DEPS_ABS_PATH}/qcs-sdk-c
