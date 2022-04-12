@@ -6,7 +6,8 @@ target/
 .idea/
 
 # release artifacts
-qcs-sdk-qir-*
+dist
+qcs-sdk-qir-llvm*
 tmp-deps-build
 .release-env
 helper/libhelper.*

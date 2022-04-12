@@ -1,8 +1,6 @@
-on: push
-
-# on:
-#   release:
-#     types: [created]
+on:
+  release:
+    types: [created]
 
 name: Release SDK & Utils (macos/linux)
 
@@ -19,6 +17,7 @@ jobs:
     env:
       C_SDK_VERSION: v0.1.0
       LLVM_VERSION: ${{ matrix.llvm_version }}
+      LLVM_FULL_VERSION: ${{ matrix.llvm_version }}.0.1
       TESTING_TAG: v0.0.0-local
     steps:
     - name: Checkout sources
@@ -53,29 +52,26 @@ jobs:
         command: install
         args: --debug cargo-make
 
+    - name: Install build environment dependencies
+      uses: lukka/get-cmake@latest
+
     - name: Run cargo build, test, fmt, clippy
       env:
         LLVM_FEATURE: llvm${{ matrix.llvm_version }}-0
+        PROFILE: "release"
       run: cargo make ci-flow
 
     - name: Setup release build environment
       run: |
         C_SDK_VERSION=${{ env.C_SDK_VERSION }} \
         LLVM_VERSION=${{ env.LLVM_VERSION }} \
+        LLVM_FULL_VERSION=${{ env.LLVM_FULL_VERSION }} \
         TESTING_TAG=${{ env.TESTING_TAG }} \
         TAG=${{ github.ref_name }} \
+        CI=${CI} \
         ./scripts/release/setup.sh
 
         cat .release-env >> $GITHUB_ENV
-
-    - name: Install build environment dependencies
-      uses: lukka/get-cmake@latest
-
-    - name: Install xcode / devtools (macos)
-      uses: maxim-lobanov/setup-xcode@v1
-      with:
-        xcode-version: latest-stable
-      if: matrix.os == 'macos-latest'
 
     - name: Build release artifacts
       run: ./scripts/release/build.sh
@@ -86,7 +82,7 @@ jobs:
     - name: Upload archive to CI summary
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ env.DIST }}-artifacts.zip
+        name: ${{ env.RELEASE }}-artifacts
         path: |
           ${{ env.ARCHIVE }}
           ${{ env.CHECKSUM }}
@@ -94,6 +90,7 @@ jobs:
     - name: Upload archive to Release ${{ env.TAG }}
       if: env.TAG != env.TESTING_TAG
       uses: softprops/action-gh-release@v1
+      continue-on-error: true
       with:
         files: |
           ${{ env.ARCHIVE }}

@@ -3,6 +3,9 @@ RUST_BACKTRACE = 0
 LLVM_FEATURE = { value = "llvm13-0", condition = { env_not_set = [
     "LLVM_FEATURE",
 ] } }
+PROFILE = { value = "dev", condition = { env_not_set = ["PROFILE"] } }
+C_SDK_BUILD = { value = "1", condition = { env_not_set = ["C_SDK_BUILD"] } }
+QIR_SDK_BUILD = { value = "1", condition = { env_not_set = ["QIR_SDK_BUILD"] } }
 
 [tasks.assemble-llvm]
 command = "find"
@@ -15,20 +18,29 @@ args = ["fmt", "--all", "--", "--check"]
 
 [tasks.clippy]
 command = "cargo"
-args = ["clippy", "--features", "${LLVM_FEATURE}"]
+args = ["clippy", "--features", "${LLVM_FEATURE}", "--profile", "${PROFILE}"]
 
 [tasks.pre-ci-flow]
 dependencies = ["format-check", "clippy"]
 
 [tasks.build]
-args = ["build", "--features", "${LLVM_FEATURE}"]
+args = ["build", "--features", "${LLVM_FEATURE}", "--profile", "${PROFILE}"]
 
 [tasks.test]
-args = ["test", "--features", "${LLVM_FEATURE}"]
+args = ["test", "--features", "${LLVM_FEATURE}", "--profile", "${PROFILE}"]
 
-[tasks.quick-release]
-script = [
-    "./scripts/release/setup.sh",
-    "./scripts/release/build.sh",
-    "./scripts/release/archive.sh",
-]
+[tasks.release-setup]
+command = "./scripts/release/setup.sh"
+
+[tasks.release-build]
+command = "./scripts/release/build.sh"
+args = ["C_SDK_BUILD: ${C_SDK_BUILD}", "QIR_SDK_BUILD: ${QIR_SDK_BUILD}"]
+
+[tasks.release-archive]
+command = "./scripts/release/archive.sh"
+
+[tasks.release-quick]
+dependencies = ["release-setup", "release-build", "release-archive"]
+
+[tasks.release-clean]
+command = "./scripts/release/clean.sh"
