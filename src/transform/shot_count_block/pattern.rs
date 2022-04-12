@@ -487,6 +487,19 @@ pub(crate) fn quantum_instruction<'ctx>(
                     let arguments = get_qis_function_arguments(context, instruction)?;
 
                     let matched = match operation {
+                        "swap" => {
+                            add_gate_instruction(
+                                pattern_context,
+                                &arguments,
+                                &function_name,
+                                "SWAP",
+                                adjoint,
+                                controlled,
+                                0,
+                                2,
+                            )?;
+                            true
+                        }
                         "toffoli" => {
                             add_gate_instruction(
                                 pattern_context,
