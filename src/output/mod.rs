@@ -17,6 +17,8 @@
 pub mod debug;
 pub use debug::DebugOutputFormat;
 
+use std::fmt::Display;
+
 use crate::RecordedOutput;
 
 use qcs::ExecutionResult;
@@ -41,7 +43,7 @@ pub enum Error {
 #[allow(clippy::module_name_repetitions)]
 /// An [`OutputFormat`] describes the behavior required to translate QCS [`ExecutionResult`] values
 /// into an environment-specific output format.
-pub trait OutputFormat: Into<String> {
+pub trait OutputFormat: Display {
     /// While some [`RecordedOutput`] and [`ExecutionResult`] variants may be unimplemented for
     /// various output formats, this provides an interface that can fail. Once all variants can be
     /// implemented, a `new` function can be added and this deprecated.
@@ -88,5 +90,5 @@ pub fn try_format<F>(result: &ExecutionResult, mapping: &[RecordedOutput]) -> Re
 where
     F: OutputFormat,
 {
-    F::try_new(result, mapping).map(Into::into)
+    F::try_new(result, mapping).map(|output| output.to_string())
 }

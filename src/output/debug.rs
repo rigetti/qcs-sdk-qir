@@ -89,15 +89,9 @@ impl OutputFormat for DebugOutputFormat {
     }
 }
 
-impl From<DebugOutputFormat> for String {
-    fn from(output: DebugOutputFormat) -> Self {
-        output.0.join("\n")
-    }
-}
-
 impl std::fmt::Display for DebugOutputFormat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.to_string())
+        f.write_str(&self.0.join("\n"))
     }
 }
 
