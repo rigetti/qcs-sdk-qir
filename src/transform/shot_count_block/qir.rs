@@ -21,8 +21,8 @@ use log::{debug, info};
 use quil_rs::instruction::Vector;
 
 use crate::interop::instruction::{
-    get_called_function_name, get_conditional_branch_else_target,
-    remove_instructions_in_safe_order, replace_conditional_branch_target, replace_phi_clauses,
+    get_conditional_branch_else_target, remove_instructions_in_safe_order,
+    replace_conditional_branch_target, replace_phi_clauses,
 };
 use crate::{context::QCSCompilerContext, interop::call, interop::entrypoint::get_entry_function};
 
@@ -127,11 +127,6 @@ pub(crate) fn transpile_module(context: &mut QCSCompilerContext) -> Result<()> {
 
     match entry_basic_block.get_first_instruction() {
         Some(instruction) => {
-            if let Ok(Some(name)) = get_called_function_name(instruction) {
-                if name == "populate_executable_array" {
-                    return Ok(());
-                }
-            }
             context.builder.position_before(&instruction);
         }
         None => context.builder.position_at_end(entry_basic_block),
