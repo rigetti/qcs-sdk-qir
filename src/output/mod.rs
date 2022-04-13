@@ -22,14 +22,14 @@ use crate::RecordedOutput;
 use qcs::ExecutionResult;
 use thiserror::Error;
 
-/// All errors that may be returned from `qcs-sdk-output-format` crate.
+/// All errors that may be returned from [`try_format`].
 #[derive(Error, Debug)]
 pub enum Error {
-    /// The `ExecutionResult` is a type that is not implemented.
+    /// The [`ExecutionResult`] is a type that is not implemented.
     #[error("the execution result type `{0}` is unimplemented")]
     UnimplementedResultType(String),
 
-    /// The `RecordedOutput` is a type that is not implemented.
+    /// The [`RecordedOutput`] is a type that is not implemented.
     #[error("the record type `{0}` is unimplemented")]
     UnimplementedRecordType(String),
 
