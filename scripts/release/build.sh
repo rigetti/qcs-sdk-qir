@@ -23,9 +23,13 @@ else
     echo "Skipping C SDK build."
 fi
 
+if [[ $NO_HELPER_LIB_BUILD -eq 0 ]]; then
 # build the SDK helper library
 pushd helper
 cp helper.h helper.c
 clang -c -o libhelper.o helper.c -fPIC
 clang -shared -L${TMP_DEPS_ABS_PATH}/qcs-sdk-c/target/release -lqcs -o libhelper.$LIB_EXT libhelper.o
 popd
+else 
+    echo "Skipping helper lib build."
+fi

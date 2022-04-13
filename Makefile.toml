@@ -10,6 +10,9 @@ NO_C_SDK_BUILD = { value = "0", condition = { env_not_set = [
 NO_QIR_SDK_BUILD = { value = "0", condition = { env_not_set = [
     "NO_QIR_SDK_BUILD",
 ] } }
+NO_HELPER_LIB_BUILD = { value = "0", condition = { env_not_set = [
+    "NO_HELPER_LIB_BUILD",
+] } }
 
 [tasks.assemble-llvm]
 command = "find"
@@ -41,6 +44,7 @@ command = "./scripts/release/build.sh"
 args = [
     "NO_C_SDK_BUILD: ${NO_C_SDK_BUILD}",
     "NO_QIR_SDK_BUILD: ${NO_QIR_SDK_BUILD}",
+    "NO_HELPER_LIB_BUILD: ${NO_HELPER_LIB_BUILD}",
 ]
 
 [tasks.release-archive]
