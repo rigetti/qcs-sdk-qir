@@ -44,7 +44,7 @@ pub enum Error {
 pub trait OutputFormat: Into<String> {
     /// While some [`RecordedOutput`] and [`ExecutionResult`] variants may be unimplemented for
     /// various output formats, this provides an interface that can fail. Once all variants can be
-    /// impelemented, a `new` function can be added and this deprecated.
+    /// implemented, a `new` function can be added and this deprecated.
     ///
     /// # Errors
     ///
