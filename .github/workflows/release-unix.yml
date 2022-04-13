@@ -90,7 +90,6 @@ jobs:
     - name: Upload archive to Release ${{ env.TAG }}
       if: env.TAG != env.TESTING_TAG
       uses: softprops/action-gh-release@v1
-      continue-on-error: true
       with:
         files: |
           ${{ env.ARCHIVE }}
