@@ -51,6 +51,11 @@ NO_C_SDK_BUILD=1 NO_QIR_SDK_BUILD=1 NO_HELPER_LIB_BUILD=1 cargo make release-qui
 Refer to the included `README.md` in your own local release build, which will help you test your
 changes if you are looking to transform and compile QIR programs. 
 
+To reset your environment and clean up release build artifacts, run:
+```sh
+cargo make release-clean
+```
+
 ## Examples
 
 Given an input QIR program that might look like this:
