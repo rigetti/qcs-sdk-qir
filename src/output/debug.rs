@@ -95,6 +95,12 @@ impl From<DebugOutputFormat> for String {
     }
 }
 
+impl std::fmt::Display for DebugOutputFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.to_string())
+    }
+}
+
 #[test]
 fn test_execution_result_debug_output() {
     let execution_result =
