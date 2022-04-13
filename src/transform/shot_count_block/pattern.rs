@@ -487,6 +487,32 @@ pub(crate) fn quantum_instruction<'ctx>(
                     let arguments = get_qis_function_arguments(context, instruction)?;
 
                     let matched = match operation {
+                        "swap" => {
+                            add_gate_instruction(
+                                pattern_context,
+                                &arguments,
+                                &function_name,
+                                "SWAP",
+                                adjoint,
+                                controlled,
+                                0,
+                                2,
+                            )?;
+                            true
+                        }
+                        "toffoli" => {
+                            add_gate_instruction(
+                                pattern_context,
+                                &arguments,
+                                &function_name,
+                                "CCNOT",
+                                adjoint,
+                                controlled,
+                                0,
+                                3,
+                            )?;
+                            true
+                        }
                         "cnot" => {
                             add_gate_instruction(
                                 pattern_context,
@@ -583,12 +609,51 @@ pub(crate) fn quantum_instruction<'ctx>(
                             )?;
                             true
                         }
+                        "t" => {
+                            add_gate_instruction(
+                                pattern_context,
+                                &arguments,
+                                &function_name,
+                                "T",
+                                adjoint,
+                                controlled,
+                                0,
+                                1,
+                            )?;
+                            true
+                        }
                         "x" => {
                             add_gate_instruction(
                                 pattern_context,
                                 &arguments,
                                 &function_name,
                                 "X",
+                                adjoint,
+                                controlled,
+                                0,
+                                1,
+                            )?;
+                            true
+                        }
+                        "y" => {
+                            add_gate_instruction(
+                                pattern_context,
+                                &arguments,
+                                &function_name,
+                                "Y",
+                                adjoint,
+                                controlled,
+                                0,
+                                1,
+                            )?;
+                            true
+                        }
+                        "z" => {
+                            add_gate_instruction(
+                                pattern_context,
+                                &arguments,
+                                &function_name,
+                                "Z",
                                 adjoint,
                                 controlled,
                                 0,

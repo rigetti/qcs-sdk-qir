@@ -5,7 +5,6 @@ declare void @__quantum__qis__rx__body(double, %Qubit*) local_unnamed_addr
 declare void @__quantum__qis__ry__body(double, %Qubit*) local_unnamed_addr
 declare void @__quantum__qis__rz__body(double, %Qubit*) local_unnamed_addr
 
-; simple function which measures a single qubit and that's it.
 define internal fastcc void @QuantumApplication__Run__body() unnamed_addr {
 
 entry:

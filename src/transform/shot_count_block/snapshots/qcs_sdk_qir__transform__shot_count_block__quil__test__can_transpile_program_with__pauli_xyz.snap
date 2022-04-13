@@ -1,0 +1,9 @@
+---
+source: src/transform/shot_count_block/quil.rs
+expression: result.program.to_string(true)
+---
+DECLARE ro BIT[0]
+X 0
+Y 0
+Z 0
+

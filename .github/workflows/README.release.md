@@ -10,6 +10,7 @@ Thank you for downloading the qcs-sdk-qir toolkit. In this release, you should f
 
 In order to transform QIR programs, please follow these steps (take note of platform-specificity):
 
+### Linux
 
 ```bash 
 export ARCHIVE_NAME=qcs-sdk-qir-llvm12-linux-x86_64-#TAG#
