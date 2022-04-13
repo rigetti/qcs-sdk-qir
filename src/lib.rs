@@ -21,12 +21,11 @@ use inkwell::module::Module;
 #[cfg(feature = "serde_support")]
 use serde::Serialize;
 
+use crate::context::QCSCompilerContext;
+pub use crate::shot_count_block::quil::ProgramOutput;
+use crate::transform::shot_count_block;
 use context::context::ContextOptions;
 pub use context::target::ExecutionTarget;
-
-use crate::context::QCSCompilerContext;
-use crate::shot_count_block::quil::ProgramOutput;
-use crate::transform::shot_count_block;
 
 /// This module contains different functions intended for use as LLVM passes.
 pub(crate) mod context;
