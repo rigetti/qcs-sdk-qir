@@ -2,11 +2,65 @@
 
 Compile & run Quantum Intermediate Representation (QIR) programs on Rigetti QCS.
 
+## Usage 
+
+The easiest way to start is by downloading the [latest release](https://github.com/rigetti/qcs-sdk-qir/releases/latest).
+
+Within the release, you will find a `README.md` pertaining to the specific version you've downloaded,
+based on [this template](./scripts/release/README.release.md). Those instructions cover the basics
+to compile an executable that can run quantum programs on Rigetti QPUs or the QVM.
+
+## Development
+
+In order to build this crate, a supported LLVM version must be installed and available on your `PATH` 
+(you must be able to run `llvm-config`). The supported versions are listed in `Cargo.toml` under 
+`[features]`.
+
+To build the CLI: 
+```sh
+cargo build --bin qcs-sdk-qir --features llvm13-0
+```
+
+To run the unit and snapshot tests: 
+```sh
+cargo test --features llvm13-0
+```
+
+To test your changes alongside the shared libraries, it might be helpful to reuse the release 
+scripts and test a fully integrated toolset. To do so, it's recommended to use `cargo-make`. Install
+it by running:
+```sh
+cargo install cargo-make
+```
+
+Use the following task and configurations to build the SDK with your changes:
+```sh
+cargo make release-quick # skips the Rust unit and snapshot tests & and other checks
+```
+
+After this, you can skip building various components if a new build is not necessary: 
+```sh
+# any or all of the following env vars can be used:
+NO_C_SDK_BUILD=1 NO_QIR_SDK_BUILD=1 NO_HELPER_LIB_BUILD=1 cargo make release-quick
+
+# NO_C_SDK_BUILD: skips the git clone & build of the `qcs-sdk-c` library (default: 0)
+# NO_QIR_SDK_BUILD: skips the build of this repo (default: 0)
+# NO_HELPER_LIB_BUILD: skips the build of the helper lib (default: 0)
+```
+
+Refer to the included `README.md` in your own local release build, which will help you test your
+changes if you are looking to transform and compile QIR programs. 
+
+To reset your environment and clean up release build artifacts, run:
+```sh
+cargo make release-clean
+```
+
 ## Examples
 
 Given an input QIR program that might look like this:
 
-```LLVM
+```llvm
 %Qubit = type opaque
 %Result = type opaque
 
@@ -48,7 +102,7 @@ This library will:
 
 After this process is complete, the above snippet might look like this (once disassembled):
 
-```LLVM
+```llvm
 ; ModuleID = 'program.bc'
 source_filename = "./test/fixtures/programs/measure.ll"
 
@@ -108,46 +162,45 @@ entry:
 }
 ```
 
-## Setup
+---
 
-In order to build this crate, a supported LLVM version installed and available on your `PATH` (you must be able to run `llvm-config`). The supported versions are listed in `Cargo.toml` under `[features]`.
+_Read the following for a more detailed run-down on usage / development:_
 
-Build the CLI using `cargo build --bin qcs-sdk-qir --features llvm13-0`.
-
-### Extra Dependencies for [Full QIR Conversion](#transform-qir)
+## Extra Dependencies for [Full QIR Conversion](#transform-qir)
 
 > These are not required if only [transforming unitary QIR to Quil](#transpile-qir-to-quil).
 
-* A C compiler, such as `gcc` or `clang`, which supports LLVM 11 at a minimum. For OSX users, this means XCode version >= 12.5.
+* A C compiler, such as `gcc` or `clang`, which supports LLVM 11 at a minimum. For OSX users, this 
+means XCode version >= 12.5.
 * The QCS SDK shared library, which may be built or downloaded as described [here](https://github.com/rigetti/qcs-sdk-c). 
 
-You'll also need to compile the shared "helper" library contained in the `helper` directory. This small shared library is used to reduce the complexity required within this crate's LLVM transformations.
+You'll also need to compile the shared "helper" library contained in the `helper` directory. This 
+small shared library is used to reduce the complexity required within this crate's LLVM 
+transformations.
 
 ```sh
 cd helper
 ./build.sh
 ```
 
-Once that's compiled, make sure to set the relevant environment variables to point to it, within the terminal where you'll be transpiling and running your QIR programs:
+Once that's compiled, make sure to set the relevant environment variables to point to it, within the 
+terminal where you'll be transpiling and running your QIR programs:
 
 ```sh
 # Linux
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/qcs-sdk-qir/helper
 
 # OSX
-export DYLD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/qcs-sdk-qir/helper
+export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/path/to/qcs-sdk-qir/helper
 
 # Windows? (To be verified)
 export PATH=$PATH:/path/to/qcs-sdk-qir/helper
 ```
 
-### Development Dependencies
-
-[cargo-make](https://github.com/sagiegurari/cargo-make) is used as a task runner - install that with `cargo install cargo-make`.
-
 ## Transform QIR
 
-To transpile an input QIR program, run the CLI. Note that you **must specify your LLVM version corresponding with your installed version or this will fail with dozens of errors**:
+To transpile an input QIR program, run the CLI. Note that you **must specify your LLVM version 
+corresponding with your installed version or this will fail with dozens of errors**:
 
 ```
 cargo run --features llvm13-0 transform path/to/input.bc path/to/output.bc --add-main-entrypoint
@@ -234,11 +287,16 @@ error: No suitable version of LLVM was found system-wide or pointed
 
 ```
 
-First, make sure you do in fact have the same LLVM version installed and on your `PATH` as you've specified with the `--features` option in `cargo`. Run `llvm-config --version` to confirm. If not, that needs fixing first.
+First, make sure you do in fact have the same LLVM version installed and on your `PATH` as you've 
+specified with the `--features` option in `cargo`. Run `llvm-config --version` to confirm. If not, 
+that needs fixing first.
 
-If you do, perhaps you first tried to build the crate before LLVM was installed and configured. Run `cargo clean -p llvm-sys` to clear the build and then retry.
+If you do, perhaps you first tried to build the crate before LLVM was installed and configured. Run 
+`cargo clean -p llvm-sys` to clear the build and then retry.
 
-You may also want to try setting the `LLVM_SYS_<version>_PREFIX` environment variable to point to the LLVM installation you want to use. For example, if you've installed LLVM 13 via Homebrew on macOS, try `export LLVM_SYS_130_PREFIX=/usr/local/opt/llvm`.
+You may also want to try setting the `LLVM_SYS_<version>_PREFIX` environment variable to point to 
+the LLVM installation you want to use. For example, if you've installed LLVM 13 via Homebrew on 
+macOS, try `export LLVM_SYS_130_PREFIX=/usr/local/opt/llvm`.
 
 ### gcc compilation error: ld: library not found for -lhelper
 

@@ -4,3 +4,11 @@
 
 target/
 .idea/
+
+# release artifacts
+dist
+qcs-sdk-qir-llvm*
+tmp-deps-build
+.release-env
+helper/libhelper.*
+helper/helper.c
