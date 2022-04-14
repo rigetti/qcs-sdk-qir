@@ -193,7 +193,6 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
                         if let Some(function) = context.module.get_function(function_name) {
                             let mut visited_functions = Vec::from(visited_functions);
                             visited_functions.push(function_name);
-                            debug!("visited: {:?}", function_name);
                             function_call_callback(context, function, &visited_functions)?;
                             next_instruction = instruction.get_next_instruction();
                             continue;

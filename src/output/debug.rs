@@ -27,6 +27,11 @@ impl OutputFormat for DebugOutputFormat {
     /// Will return [`enum@Error`] if something about the [`ExecutionResult`] or [`RecordedOutput`] is
     /// unsupported, or if any of the result's data is indexed out-of-range.
     ///
+    /// # Arguments
+    ///
+    /// - `result`: The output returned from the [`qcs`] crate.
+    /// - `mapping`: The [`crate::ProgramOutput::recorded_output`] field from a call to [`crate::transpile_qir_to_quil`]
+    ///
     /// # Errors
     ///
     /// See [`enum@Error`].
@@ -46,7 +51,6 @@ impl OutputFormat for DebugOutputFormat {
                                 break;
                             }
                             RecordedOutput::ResultReadoutOffset(index) => {
-                                // TODO: determine if we need the upstream `index` to be 64-bit.
                                 #[allow(clippy::cast_possible_truncation)]
                                 let index = *index as usize;
                                 if let Some(result) = shot.get(index) {
