@@ -38,4 +38,4 @@ trycmd = "0.13.3"
 default = ["serde_support"]
 llvm12-0 = ["inkwell/llvm12-0"]
 llvm13-0 = ["inkwell/llvm13-0"]
-serde_support = ["dep:serde", "dep:serde_json"]
+serde_support = ["serde", "serde_json"]
