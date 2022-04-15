@@ -106,6 +106,12 @@ pub fn transpile_qir_to_quil(bitcode: &[u8]) -> Result<ProgramOutput> {
     shot_count_block::quil::transpile_module(&mut context).wrap_err("transpilation failed")
 }
 
+/// Transpile the given unitary format QIR bitcode into the equivalent Quil program, extracting the
+/// shot count from the main program loop.
+///
+///
+/// # Errors
+/// 1. Returns a [`eyre::Report`] with human readable messages if the transpilation fails.
 pub fn transpile_unitary_qir_to_quil(bitcode: &[u8]) -> Result<unitary::quil::ProgramOutput> {
     let context = inkwell::context::Context::create();
     let mut context = QCSCompilerContext::new_from_data(
