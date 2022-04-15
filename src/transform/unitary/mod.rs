@@ -12,5 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub(crate) mod shot_count_block;
-pub(crate) mod unitary;
+mod pattern;
+pub(crate) mod quil;
+
+pub(crate) const PARAMETER_MEMORY_REGION_NAME: &str = "__qir_param";

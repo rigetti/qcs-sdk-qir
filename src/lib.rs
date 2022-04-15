@@ -23,7 +23,7 @@ use serde::Serialize;
 
 use crate::context::QCSCompilerContext;
 pub use crate::shot_count_block::quil::ProgramOutput;
-use crate::transform::shot_count_block;
+use crate::transform::{shot_count_block, unitary};
 use context::context::ContextOptions;
 pub use context::target::ExecutionTarget;
 
@@ -104,4 +104,15 @@ pub fn transpile_qir_to_quil(bitcode: &[u8]) -> Result<ProgramOutput> {
         ContextOptions::default(),
     )?;
     shot_count_block::quil::transpile_module(&mut context).wrap_err("transpilation failed")
+}
+
+pub fn transpile_unitary_qir_to_quil(bitcode: &[u8]) -> Result<unitary::quil::ProgramOutput> {
+    let context = inkwell::context::Context::create();
+    let mut context = QCSCompilerContext::new_from_data(
+        &context,
+        bitcode,
+        ExecutionTarget::Qvm,
+        ContextOptions::default(),
+    )?;
+    unitary::quil::transpile_module(&mut context).wrap_err("transpilation failed")
 }

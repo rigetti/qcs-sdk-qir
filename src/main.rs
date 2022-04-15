@@ -32,9 +32,6 @@ enum QcsQirCli {
         about = "Given an LLVM bitcode file, replace quantum intrinsics with calls to execute equivalent Quil on Rigetti QCS"
     )]
     Transform {
-        #[clap(long, default_value = "shot-count")]
-        format: QirFormat,
-
         llvm_bitcode_path: PathBuf,
 
         #[clap(parse(from_os_str))]
@@ -93,7 +90,6 @@ fn main() -> Result<()> {
     let opt = QcsQirCli::parse();
     match opt {
         QcsQirCli::Transform {
-            format,
             add_main_entrypoint,
             llvm_bitcode_path,
             bitcode_out,
@@ -125,16 +121,33 @@ fn main() -> Result<()> {
             llvm_bitcode_path,
         } => {
             let data = std::fs::read(llvm_bitcode_path)?;
-            let output = qcs_sdk_qir::transpile_qir_to_quil(&data)?;
 
-            #[cfg(feature = "serde_support")]
-            println!("{}", serde_json::to_string_pretty(&output)?);
+            match format {
+                QirFormat::ShotCount => {
+                    let output = qcs_sdk_qir::transpile_qir_to_quil(&data)?;
 
-            #[cfg(not(feature = "serde_support"))]
-            {
-                println!("shot count: {}\n", output.shot_count);
-                println!("quil:\n{}", output.program.to_string(true));
-                println!("recorded output:\n{:#?}", output.recorded_output);
+                    #[cfg(feature = "serde_support")]
+                    println!("{}", serde_json::to_string_pretty(&output)?);
+
+                    #[cfg(not(feature = "serde_support"))]
+                    {
+                        println!("shot count: {}\n", output.shot_count);
+                        println!("quil:\n{}", output.program.to_string(true));
+                        println!("recorded output:\n{:#?}", output.recorded_output);
+                    }
+                }
+                QirFormat::Unitary => {
+                    let output = qcs_sdk_qir::transpile_unitary_qir_to_quil(&data)?;
+
+                    #[cfg(feature = "serde_support")]
+                    println!("{}", serde_json::to_string_pretty(&output)?);
+
+                    #[cfg(not(feature = "serde_support"))]
+                    {
+                        println!("quil:\n{}", output.program.to_string(true));
+                        println!("recorded output:\n{:#?}", output.recorded_output);
+                    }
+                }
             }
 
             Ok(())
