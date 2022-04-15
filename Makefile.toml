@@ -17,7 +17,7 @@ NO_HELPER_LIB_BUILD = { value = "0", condition = { env_not_set = [
 [tasks.assemble-llvm]
 command = "find"
 description = "Assemble all LLVM .ll files in this package into bitcode"
-args = [".", "-v", "-name", "*.ll", "-exec", "llvm-as", "{}", ";"]
+args = [".", "-name", "*.ll", "-exec", "llvm-as", "{}", ";"]
 
 [tasks.format-check]
 command = "cargo"
