@@ -3,7 +3,7 @@ source: src/transform/shot_count_block/qir.rs
 expression: context.module.print_to_string().to_str().unwrap()
 ---
 ; ModuleID = 'qcs'
-source_filename = "tests/fixtures/programs/cartesian_rotations.ll"
+source_filename = "./tests/fixtures/programs/cartesian_rotations.ll"
 
 %ExecutableCache = type opaque
 %Qubit = type opaque

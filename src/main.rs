@@ -78,7 +78,7 @@ impl FromStr for QirFormat {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "shot-count" => Ok(QirFormat::ShotCount),
-            "unary" => Ok(QirFormat::Unitary),
+            "unitary" => Ok(QirFormat::Unitary),
             _ => Err(eyre::eyre!("unrecognized QIR format")),
         }
     }
