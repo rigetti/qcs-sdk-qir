@@ -14,21 +14,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::path::PathBuf;
+use std::{path::PathBuf, str::FromStr};
 
 use clap::Parser;
-use eyre::Result;
+use eyre::{Report, Result};
 
 use qcs_sdk_qir::{ExecutionTarget, PatchOptions};
 
 #[derive(Parser, Debug)]
-#[structopt(name = "QIRQuilTranslator", about = "Translate QIR to Quil")]
+#[clap(
+    name = "QCS SDK QIR Command Line Tool",
+    about = "Transform & translate QIR programs to target Rigetti systems."
+)]
 enum QcsQirCli {
     #[clap(
         name = "transform",
         about = "Given an LLVM bitcode file, replace quantum intrinsics with calls to execute equivalent Quil on Rigetti QCS"
     )]
     Transform {
+        #[clap(long, default_value = "shot-count")]
+        format: QirFormat,
+
         llvm_bitcode_path: PathBuf,
 
         #[clap(parse(from_os_str))]
@@ -55,7 +61,30 @@ enum QcsQirCli {
         name = "transpile-to-quil",
         about = "Given an LLVM bitcode file, output the equivalent Quil program"
     )]
-    TranspileToQuil { llvm_bitcode_path: PathBuf },
+    TranspileToQuil {
+        #[clap(long, default_value = "shot-count")]
+        format: QirFormat,
+
+        llvm_bitcode_path: PathBuf,
+    },
+}
+
+#[derive(Debug)]
+enum QirFormat {
+    ShotCount,
+    Unitary,
+}
+
+impl FromStr for QirFormat {
+    type Err = Report;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "shot-count" => Ok(QirFormat::ShotCount),
+            "unary" => Ok(QirFormat::Unitary),
+            _ => Err(eyre::eyre!("unrecognized QIR format")),
+        }
+    }
 }
 
 fn main() -> Result<()> {
@@ -64,6 +93,7 @@ fn main() -> Result<()> {
     let opt = QcsQirCli::parse();
     match opt {
         QcsQirCli::Transform {
+            format,
             add_main_entrypoint,
             llvm_bitcode_path,
             bitcode_out,
@@ -90,7 +120,10 @@ fn main() -> Result<()> {
             }
             Ok(())
         }
-        QcsQirCli::TranspileToQuil { llvm_bitcode_path } => {
+        QcsQirCli::TranspileToQuil {
+            format,
+            llvm_bitcode_path,
+        } => {
             let data = std::fs::read(llvm_bitcode_path)?;
             let output = qcs_sdk_qir::transpile_qir_to_quil(&data)?;
 
