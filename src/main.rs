@@ -93,11 +93,17 @@ fn main() -> Result<()> {
         QcsQirCli::TranspileToQuil { llvm_bitcode_path } => {
             let data = std::fs::read(llvm_bitcode_path)?;
             let output = qcs_sdk_qir::transpile_qir_to_quil(&data)?;
-            println!(
-                "shot count: {}\nprogram: {}\n",
-                output.shot_count,
-                output.program.to_string(true)
-            );
+
+            #[cfg(feature = "serde_support")]
+            println!("{}", serde_json::to_string_pretty(&output)?);
+
+            #[cfg(not(feature = "serde_support"))]
+            {
+                println!("shot count: {}\n", output.shot_count);
+                println!("quil:\n{}", output.program.to_string(true));
+                println!("recorded output:\n{:#?}", output.recorded_output);
+            }
+
             Ok(())
         }
     }

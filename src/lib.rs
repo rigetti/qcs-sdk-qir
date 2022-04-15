@@ -18,16 +18,19 @@ use eyre::{Result, WrapErr};
 use inkwell::context::Context;
 use inkwell::module::Module;
 
-use context::context::ContextOptions;
-pub use context::target::ExecutionTarget;
+#[cfg(feature = "serde_support")]
+use serde::Serialize;
 
 use crate::context::QCSCompilerContext;
-use crate::shot_count_block::quil::ProgramOutput;
+pub use crate::shot_count_block::quil::ProgramOutput;
 use crate::transform::shot_count_block;
+use context::context::ContextOptions;
+pub use context::target::ExecutionTarget;
 
 /// This module contains different functions intended for use as LLVM passes.
 pub(crate) mod context;
 pub(crate) mod interop;
+pub mod output;
 pub(crate) mod transform;
 
 /// Given an LLVM bitcode, replace quantum intrinsics with calls to execute equivalent Quil on Rigetti QCS
@@ -57,6 +60,26 @@ pub fn patch_qir_with_qcs<'ctx>(
         crate::interop::entrypoint::add_main_entrypoint(&mut context)?;
     }
     Ok(context.module)
+}
+
+/// Signifies output to be recorded at the end of program execution
+#[derive(Clone, Debug)]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(Serialize),
+    serde(rename_all = "snake_case")
+)]
+pub enum RecordedOutput {
+    ShotStart,
+    ShotEnd,
+    ResultReadoutOffset(u64),
+    BoolReadoutOffset(u64),
+    IntegerReadoutOffset(u64),
+    DoubleReadoutOffset(u64),
+    TupleStart,
+    TupleEnd,
+    ArrayStart,
+    ArrayEnd,
 }
 
 pub struct PatchOptions {

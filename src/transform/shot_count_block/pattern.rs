@@ -42,6 +42,7 @@ use crate::{
         get_called_function_name, get_qis_function_arguments, integer_value_to_u64,
         operand_to_integer, OperationArgument,
     },
+    RecordedOutput,
 };
 
 use super::PARAMETER_MEMORY_REGION_NAME;
@@ -77,6 +78,9 @@ pub(crate) struct ShotCountPatternMatchContext<'ctx> {
 
     /// The quil program transpiled from quantum intrinsics
     pub(crate) quil_program: quil_rs::Program,
+
+    /// Signifies output to be recorded at the end of program execution
+    pub(crate) recorded_output: Vec<RecordedOutput>,
 
     /// The shot count inferred from the loop instructions
     pub(crate) shot_count: Option<u64>,
@@ -145,7 +149,41 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
         );
 
         while let Some(instruction) = next_instruction {
-            if instruction.get_opcode() == InstructionOpcode::Call {
+            // If we haven't yet found the loop start...
+            if pattern_context.initial_instruction.is_none() {
+                // Check if we've found it in this instruction. If not, continue on to the next instruction until we do find it.
+                // FIXME: ensure we encounter this first (i.e. the pattern must be matched in order)
+                if let Some((pattern_instruction, _)) =
+                    shot_count_loop_start(&mut pattern_context, instruction)
+                {
+                    debug!("matched shot count start: {:?}", instruction);
+                    pattern_context
+                        .recorded_output
+                        .push(RecordedOutput::ShotStart);
+                    next_instruction = pattern_instruction;
+                    continue;
+                }
+            } else if let Some((pattern_instruction, _)) =
+                quantum_instruction(context, &mut pattern_context, instruction)?
+            {
+                debug!("matched quantum instruction: {:?}", instruction);
+                next_instruction = pattern_instruction;
+                continue;
+            } else if let Some((pattern_instruction, _)) =
+                rt_record_instruction(context, &mut pattern_context, instruction)?
+            {
+                debug!("matched rt_record instruction: {:?}", instruction);
+                next_instruction = pattern_instruction;
+                continue;
+            } else if let Some((_, _)) =
+                shot_count_loop_end(context, &mut pattern_context, instruction)?
+            {
+                debug!("matched shot count end: {:?}", instruction);
+                pattern_context
+                    .recorded_output
+                    .push(RecordedOutput::ShotEnd);
+                break;
+            } else if instruction.get_opcode() == InstructionOpcode::Call {
                 // TODO: handle callbr?
                 if let Some(Either::Left(BasicValueEnum::PointerValue(pointer_value))) =
                     instruction.get_operand(0)
@@ -161,30 +199,6 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
                         }
                     }
                 }
-            }
-
-            // If we haven't yet found the loop start...
-            if pattern_context.initial_instruction.is_none() {
-                // Check if we've found it in this instruction. If not, continue on to the next instruction until we do find it.
-                // FIXME: ensure we encounter this first (i.e. the pattern must be matched in order)
-                if let Some((pattern_instruction, _)) =
-                    shot_count_loop_start(&mut pattern_context, instruction)
-                {
-                    debug!("matched shot count start: {:?}", instruction);
-                    next_instruction = pattern_instruction;
-                    continue;
-                }
-            } else if let Some((pattern_instruction, _)) =
-                quantum_instruction(context, &mut pattern_context, instruction)?
-            {
-                debug!("matched quantum instruction: {:?}", instruction);
-                next_instruction = pattern_instruction;
-                continue;
-            } else if let Some((_, _)) =
-                shot_count_loop_end(context, &mut pattern_context, instruction)?
-            {
-                debug!("matched shot count end: {:?}", instruction);
-                break;
             }
 
             next_instruction = instruction.get_next_instruction();
@@ -466,6 +480,65 @@ lazy_static! {
         r"^__quantum__qis__(?P<operation>[^_]+)(?P<controlled>__ctl)?(?P<adjoint>__adj)?(__body)?$"
     )
     .unwrap();
+    static ref RT_RECORD_OUTPUT_INTRINSIC_REGEX: Regex =
+        Regex::new("^__quantum__rt__(?P<record_type>.+)_record_output$").unwrap();
+}
+
+pub(crate) fn rt_record_instruction<'ctx>(
+    context: &QCSCompilerContext<'ctx>,
+    pattern_context: &mut ShotCountPatternMatchContext<'ctx>,
+    instruction: InstructionValue<'ctx>,
+) -> Result<PatternResult<'ctx, ()>> {
+    match instruction.get_opcode() {
+        inkwell::values::InstructionOpcode::Call => {
+            let function_target_name = get_called_function_name(instruction)?;
+
+            if let Some(function_name) = function_target_name {
+                if let Some(captures) = RT_RECORD_OUTPUT_INTRINSIC_REGEX.captures(&function_name) {
+                    let record_type = &captures["record_type"];
+
+                    match record_type {
+                        "result" => {
+                            let arguments = get_qis_function_arguments(context, instruction)?;
+                            if let Some(OperationArgument::Result(result_index)) = arguments.get(0)
+                            {
+                                let index = pattern_context.read_result_mapping.get(result_index).ok_or_else(|| eyre!("Result index {} was never the target of a measurement operation", result_index))?;
+                                pattern_context
+                                    .recorded_output
+                                    .push(RecordedOutput::ResultReadoutOffset(*index));
+                            } else {
+                                return Err(eyre!(
+                                    "malformed or missing arguments for: __quantum_rt__{}_record_output",
+                                    record_type
+                                ));
+                            }
+                        }
+                        "bool" | "integer" | "double" => {
+                            return Err(eyre!("unimplemented record type: {}", record_type));
+                        }
+                        "tuple_start" => pattern_context
+                            .recorded_output
+                            .push(RecordedOutput::TupleStart),
+                        "tuple_end" => pattern_context
+                            .recorded_output
+                            .push(RecordedOutput::TupleEnd),
+                        "array_start" => pattern_context
+                            .recorded_output
+                            .push(RecordedOutput::ArrayStart),
+                        "array_end" => pattern_context
+                            .recorded_output
+                            .push(RecordedOutput::ArrayEnd),
+                        _ => {
+                            return Ok(None);
+                        }
+                    }
+                    return Ok(Some((instruction.get_next_instruction(), ())));
+                }
+            }
+            Ok(None)
+        }
+        _ => Ok(None),
+    }
 }
 
 #[allow(clippy::too_many_lines)]

@@ -6,7 +6,7 @@ authors = [
     "Mark Skilbeck <mark.skilbeck@rigetti.com>",
     "Steve Manuel <smanuel@rigetti.com>",
 ]
-edition = "2018"
+edition = "2021"
 license = "Apache-2.0"
 
 [dependencies]
@@ -19,6 +19,10 @@ num-complex = "0.4.0"
 quil-rs = "0.8.5"
 regex = "1.5.4"
 clap = { version = "3.1.6", features = ["derive"] }
+serde_json = { version = "1", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
+thiserror = "1"
+qcs = "0.2.0"
 
 [dependencies.inkwell]
 version = "0.1.0"
@@ -31,5 +35,7 @@ insta = "1.8.0"
 trycmd = "0.13.3"
 
 [features]
+default = ["serde_support"]
 llvm12-0 = ["inkwell/llvm12-0"]
 llvm13-0 = ["inkwell/llvm13-0"]
+serde_support = ["serde", "serde_json"]

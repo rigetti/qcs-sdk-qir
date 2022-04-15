@@ -1,5 +1,10 @@
-use qcs_sdk_qir::transpile_qir_to_quil;
 use std::fs::read;
+
+use qcs::ExecutionResult;
+use qcs_sdk_qir::{
+    output::{self, DebugOutputFormat},
+    transpile_qir_to_quil,
+};
 
 #[test]
 fn transpile_qir_to_quil_bell_state() {
@@ -7,4 +12,18 @@ fn transpile_qir_to_quil_bell_state() {
     let output = transpile_qir_to_quil(&data).unwrap();
     insta::assert_snapshot!(output.program.to_string(true));
     insta::assert_display_snapshot!(output.shot_count);
+}
+
+#[test]
+fn capture_recorded_output_and_convert() {
+    let data = read("tests/fixtures/programs/record_output.bc").unwrap();
+    let output = transpile_qir_to_quil(&data).unwrap();
+    insta::assert_json_snapshot!(&output.recorded_output);
+
+    let debug_format = output::try_format::<DebugOutputFormat>(
+        &ExecutionResult::I8(vec![vec![1, 2], vec![2, 4], vec![3, 6]]),
+        &output.recorded_output,
+    )
+    .unwrap();
+    insta::assert_snapshot!(debug_format);
 }

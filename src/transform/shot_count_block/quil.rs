@@ -19,7 +19,10 @@ use eyre::{eyre, Result};
 use inkwell::{basic_block::BasicBlock, values::FunctionValue};
 use quil_rs::instruction::Vector;
 
-use crate::{context::QCSCompilerContext, interop::entrypoint::get_entry_function};
+#[cfg(feature = "serde_support")]
+use serde::{ser::SerializeStruct, Serialize, Serializer};
+
+use crate::{context::QCSCompilerContext, interop::entrypoint::get_entry_function, RecordedOutput};
 
 use super::pattern::ShotCountPatternMatchContext;
 use super::PARAMETER_MEMORY_REGION_NAME;
@@ -31,6 +34,22 @@ pub struct ProgramOutput {
     pub program: quil_rs::Program,
     /// The number of shots to run the program for, extracted from the primary execution loop
     pub shot_count: u64,
+    /// Signifies output to be recorded at the end of program execution
+    pub recorded_output: Vec<RecordedOutput>,
+}
+
+#[cfg(feature = "serde_support")]
+impl Serialize for ProgramOutput {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut output = serializer.serialize_struct("ProgramOutput", 3)?;
+        output.serialize_field("program", &self.program.to_string(true))?;
+        output.serialize_field("shot_count", &self.shot_count)?;
+        output.serialize_field("recorded_output", &self.recorded_output)?;
+        output.end()
+    }
 }
 
 /// Transform an entire QIR module to a single Quil program with shot count inferred
@@ -157,6 +176,7 @@ pub(crate) fn build_quil_program<'ctx, 'p: 'ctx>(
         Ok(ProgramOutput {
             program,
             shot_count: shots,
+            recorded_output: pattern_context.recorded_output.clone(),
         })
     } else {
         Err(eyre::eyre!(
