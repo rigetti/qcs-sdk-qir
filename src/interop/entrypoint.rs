@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use eyre::{eyre, Result};
+use inkwell::attributes::AttributeLoc;
 use inkwell::module::Module;
 use inkwell::values::FunctionValue;
 
@@ -24,14 +25,18 @@ pub(crate) fn get_entry_function<'ctx>(module: &Module<'ctx>) -> Option<Function
     let entrypoint_name = format!("{}__{}__body", ns, method);
     module
         .get_function(&entrypoint_name)
-        .or_else(|| get_alternate_entry_function(module))
+        .or_else(|| get_entrypoint_function(module))
 }
 
-// TODO: temporary, replace with by-attribute lookup of the entrypoint. This is hardcoded to work with the provided VQE examples.
-pub(crate) fn get_alternate_entry_function<'ctx>(
-    module: &Module<'ctx>,
-) -> Option<FunctionValue<'ctx>> {
-    module.get_function("Microsoft__Quantum__Samples__RunMain__Interop")
+/// By-attribute lookup of the entrypoint function in a given module.
+pub(crate) fn get_entrypoint_function<'ctx>(module: &Module<'ctx>) -> Option<FunctionValue<'ctx>> {
+    module
+        .get_functions()
+        .filter(|f| f.count_attributes(AttributeLoc::Function) > 0)
+        .find(|f| {
+            f.get_string_attribute(AttributeLoc::Function, "EntryPoint")
+                .is_some()
+        })
 }
 
 /// Mutate the context to add a `main` function as an entrypoint for `x86_64`, which
