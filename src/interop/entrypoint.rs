@@ -61,3 +61,15 @@ pub(crate) fn add_main_entrypoint(context: &mut QCSCompilerContext) -> Result<()
         .build_return(Some(&context.base_context.i32_type().const_int(0, false)));
     Ok(())
 }
+
+#[test]
+fn test_entrypoint_attribute() {
+    let path = "tests/fixtures/programs/entrypoint_attribute.bc";
+    let data = std::fs::read(path).unwrap();
+    let context = inkwell::context::Context::create();
+    let module = super::load::load_module_from_bitcode(&context, &data).unwrap();
+    let function = get_entrypoint_function(&module);
+
+    assert!(function.is_some());
+    assert_eq!(b"some_function", function.unwrap().get_name().to_bytes());
+}
