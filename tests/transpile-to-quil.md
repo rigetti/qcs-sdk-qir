@@ -26,12 +26,6 @@ Providing an invalid QIR program will result in an error:
 ```
 $ qcs-sdk-qir transpile-to-quil tests/fixtures/programs/non-unitary.bc
 ? failed
-Error: transpilation failed
-
-Caused by:
-    no basic block named 'body' found in function
-
-Location:
-    [..]
-
+Error: Encountered invalid parameter(s)[..]
+...
 ```
