@@ -19,16 +19,19 @@ use inkwell::values::FunctionValue;
 
 use crate::context::QCSCompilerContext;
 
+/// First, check for a function with an attribute value of "`EntryPoint`". This indicates the starting
+/// point for the program. If no such function exists, look for one with the default name,
+/// "`QuantumApplication__Run__body`".
 pub(crate) fn get_entry_function<'ctx>(module: &Module<'ctx>) -> Option<FunctionValue<'ctx>> {
     let ns = "QuantumApplication";
     let method = "Run";
     let entrypoint_name = format!("{}__{}__body", ns, method);
-    module
-        .get_function(&entrypoint_name)
-        .or_else(|| get_entrypoint_function(module))
+    get_entrypoint_function(module).or_else(|| module.get_function(&entrypoint_name))
 }
 
-/// By-attribute lookup of the entrypoint function in a given module.
+/// By-attribute lookup of the entrypoint function in a given module. High-level languages may add
+/// an attribute to a function, informing compilers of a module's entry point. This attribute will
+/// have the value, "`EntryPoint`".
 pub(crate) fn get_entrypoint_function<'ctx>(module: &Module<'ctx>) -> Option<FunctionValue<'ctx>> {
     module
         .get_functions()
