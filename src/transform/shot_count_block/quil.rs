@@ -233,5 +233,6 @@ mod test {
         make_snapshot_test!(t_and_adjoint_t);
         make_snapshot_test!(toffoli);
         make_snapshot_test!(swap);
+        make_snapshot_test!(entrypoint_attribute);
     }
 }
