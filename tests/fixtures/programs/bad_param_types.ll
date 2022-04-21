@@ -1,7 +1,10 @@
 %Qubit = type opaque
 %Result = type opaque
+%BadType = type opaque
 
 declare void @__quantum__qis__rz__body(i32, %Qubit*) local_unnamed_addr
+declare void @__quantum__qis__ry__body(i32, i16, i8, %Qubit*) local_unnamed_addr
+declare void @__quantum__qis__rx__body(i1, %BadType*) local_unnamed_addr
 
 ; function that executes an RZ gate on a single qubit, parameterized by 2 values
 define internal fastcc void @QuantumApplication__Run__body() unnamed_addr {
