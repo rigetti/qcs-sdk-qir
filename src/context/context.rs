@@ -115,7 +115,7 @@ impl<'ctx> QCSCompilerContext<'ctx> {
 
         for (name, params) in name_params {
             formatted_fn_params.push_str(&format!(
-                "Function `@{}`:\n{}",
+                "\nFunction `@{}`:\n{}\n",
                 name,
                 params
                     .iter()
