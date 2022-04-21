@@ -16,6 +16,7 @@
 // into quil, substituting those instructions with inline calls to a shared library responsible for
 // executing those quil instructions.
 use eyre::{eyre, Result};
+use inkwell::types::AnyType;
 use inkwell::{basic_block::BasicBlock, values::FunctionValue};
 use quil_rs::instruction::Vector;
 
@@ -66,6 +67,16 @@ pub(crate) fn transpile_function<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     function: FunctionValue<'ctx>,
 ) -> eyre::Result<ProgramOutput> {
+    // validate that the function returns void, as a requirement of the Unitary format
+    let void_func_ty = context.base_context.void_type().fn_type(&[], false);
+    let func_ty = function.get_type();
+    if func_ty.ne(&void_func_ty) {
+        return Err(eyre::eyre!(
+            "expected function to return void; found {}",
+            func_ty.print_to_string()
+        ));
+    }
+
     let blocks = function.get_basic_blocks();
     let block_count = blocks.len();
 
@@ -76,6 +87,37 @@ pub(crate) fn transpile_function<'ctx>(
             block_count
         )),
     }
+}
+
+#[test]
+fn validates_unitary_ret_void() {
+    use crate::transform::unitary::quil::transpile_module;
+
+    let context = inkwell::context::Context::create();
+    let path = "tests/fixtures/programs/unitary/non_void_terminator.bc";
+    let data = std::fs::read(path).unwrap();
+    let mut context = QCSCompilerContext::new_from_data(
+        &context,
+        &data,
+        crate::ExecutionTarget::Qvm,
+        Default::default(),
+    )
+    .unwrap();
+
+    assert!(transpile_module(&mut context).is_err());
+
+    let context = inkwell::context::Context::create();
+    let path = "tests/fixtures/programs/unitary/bell_state.bc";
+    let data = std::fs::read(path).unwrap();
+    let mut context = QCSCompilerContext::new_from_data(
+        &context,
+        &data,
+        crate::ExecutionTarget::Qvm,
+        Default::default(),
+    )
+    .unwrap();
+
+    assert!(transpile_module(&mut context).is_ok());
 }
 
 /// Transpile a single QIR basic block to a Quil program. This block must match the pattern
