@@ -27,3 +27,13 @@ popd
 tar -cvzf ${ARCHIVE} ${DIST_DIR}
 ls -ll ${ARCHIVE}
 shasum -a 256 ${ARCHIVE} > ${CHECKSUM}
+
+# print location of pre-archive local release:
+if [[ $CI != "true" ]]; then
+    set +x
+    echo "------------------------------------------"
+    echo "Release build complete! See contents here:"
+    echo "./${DIST_DIR}"
+    echo ""
+    echo "Archived contents here: ./${ARCHIVE}"
+fi
