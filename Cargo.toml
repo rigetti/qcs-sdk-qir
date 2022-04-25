@@ -35,7 +35,7 @@ insta = "1.8.0"
 trycmd = "0.13.3"
 
 [features]
-default = ["serde_support"]
+default = ["llvm13-0", "serde_support"]
 llvm12-0 = ["inkwell/llvm12-0"]
 llvm13-0 = ["inkwell/llvm13-0"]
 serde_support = ["serde", "serde_json"]

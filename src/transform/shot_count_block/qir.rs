@@ -20,14 +20,17 @@ use inkwell::{
 use log::{debug, info};
 use quil_rs::instruction::Vector;
 
-use crate::interop::instruction::{
-    get_conditional_branch_else_target, remove_instructions_in_safe_order,
-    replace_conditional_branch_target, replace_phi_clauses,
+use crate::interop::{
+    call,
+    entrypoint::get_entry_function,
+    instruction::{
+        get_conditional_branch_else_target, remove_instructions_in_safe_order,
+        replace_conditional_branch_target, replace_phi_clauses,
+    },
 };
-use crate::{context::QCSCompilerContext, interop::call, interop::entrypoint::get_entry_function};
+use crate::{context::QCSCompilerContext, transform::PARAMETER_MEMORY_REGION_NAME};
 
 use super::pattern::ShotCountPatternMatchContext;
-use super::PARAMETER_MEMORY_REGION_NAME;
 
 /// Build and insert an LLVM function which performs up-front translation of
 /// all Quil programs used in the module and stores them in an array referred

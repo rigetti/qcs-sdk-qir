@@ -32,10 +32,9 @@ use crate::{
     interop::instruction::{
         get_called_function_name, get_qis_function_arguments, OperationArgument,
     },
+    transform::PARAMETER_MEMORY_REGION_NAME,
     RecordedOutput,
 };
-
-use super::PARAMETER_MEMORY_REGION_NAME;
 
 /// Each pattern matching function, if it finds a match, returns a result tuple including:
 /// * data about the pattern which was matched.

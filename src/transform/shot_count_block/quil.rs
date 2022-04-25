@@ -22,10 +22,10 @@ use quil_rs::instruction::Vector;
 #[cfg(feature = "serde_support")]
 use serde::{ser::SerializeStruct, Serialize, Serializer};
 
+use crate::transform::PARAMETER_MEMORY_REGION_NAME;
 use crate::{context::QCSCompilerContext, interop::entrypoint::get_entry_function, RecordedOutput};
 
 use super::pattern::ShotCountPatternMatchContext;
-use super::PARAMETER_MEMORY_REGION_NAME;
 
 /// Encapsulates the result of transpiling a QIR module to a Quil program
 #[derive(Debug)]

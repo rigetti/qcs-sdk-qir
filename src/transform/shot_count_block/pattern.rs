@@ -42,10 +42,9 @@ use crate::{
         get_called_function_name, get_qis_function_arguments, integer_value_to_u64,
         operand_to_integer, OperationArgument,
     },
+    transform::PARAMETER_MEMORY_REGION_NAME,
     RecordedOutput,
 };
-
-use super::PARAMETER_MEMORY_REGION_NAME;
 
 /// Each pattern matching function, if it finds a match, returns a result tuple including:
 /// * data about the pattern which was matched.
