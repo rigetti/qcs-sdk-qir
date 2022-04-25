@@ -53,8 +53,7 @@ impl Serialize for ProgramOutput {
     }
 }
 
-/// Transform an entire QIR module to a single Quil program with shot count inferred
-/// from a program loop counter.
+/// Transform an entire QIR module to a single Quil program
 #[allow(dead_code)]
 pub(crate) fn transpile_module(context: &mut QCSCompilerContext) -> Result<ProgramOutput> {
     let entrypoint_function = get_entry_function(&context.module)
@@ -62,9 +61,8 @@ pub(crate) fn transpile_module(context: &mut QCSCompilerContext) -> Result<Progr
     transpile_function(context, entrypoint_function)
 }
 
-/// Transpile a single QIR function body to a Quil program. This function may have any number
-/// of basic blocks, but only the block named `body` will be parsed for quantum instructions
-/// and transpiled to Quil; others will be ignored.
+/// Transpile a single QIR function body to a Quil program. This function may have a single basic
+/// block, comprised of quantum instructions.
 pub(crate) fn transpile_function<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     function: FunctionValue<'ctx>,
@@ -133,7 +131,7 @@ pub(crate) fn transpile_basic_block<'ctx>(
     build_quil_program(context, &pattern_context)
 }
 
-/// Build a Quil program from the information scraped into a shot-count pattern match.
+/// Build a Quil program from the information scraped into a unitary pattern match.
 /// If no pattern was detected, return an error.
 #[allow(clippy::unnecessary_wraps)]
 pub(crate) fn build_quil_program<'ctx, 'p: 'ctx>(
