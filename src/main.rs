@@ -32,6 +32,9 @@ enum QcsQirCli {
         about = "Given an LLVM bitcode file, replace quantum intrinsics with calls to execute equivalent Quil on Rigetti QCS"
     )]
     Transform {
+        #[clap(long, default_value = "shot-count")]
+        format: QirFormat,
+
         llvm_bitcode_path: PathBuf,
 
         #[clap(parse(from_os_str))]
@@ -90,6 +93,7 @@ fn main() -> Result<()> {
     let opt = QcsQirCli::parse();
     match opt {
         QcsQirCli::Transform {
+            format,
             add_main_entrypoint,
             llvm_bitcode_path,
             bitcode_out,
@@ -105,7 +109,14 @@ fn main() -> Result<()> {
                 quil_rewiring_pragma,
             };
             let context = inkwell::context::Context::create();
-            let module = qcs_sdk_qir::patch_qir_with_qcs(options, &bitcode, &context)?;
+            let module = match format {
+                QirFormat::ShotCount => {
+                    qcs_sdk_qir::patch_qir_with_qcs(options, &bitcode, &context)?
+                }
+                QirFormat::Unitary => {
+                    qcs_sdk_qir::patch_unitary_qir_with_qcs(options, &bitcode, &context)?
+                }
+            };
             match bitcode_out {
                 Some(path) => {
                     module.write_bitcode_to_path(&path);

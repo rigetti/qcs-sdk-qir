@@ -62,6 +62,35 @@ pub fn patch_qir_with_qcs<'ctx>(
     Ok(context.module)
 }
 
+/// Given an LLVM bitcode, replace quantum intrinsics with calls to execute equivalent Quil on Rigetti QCS
+///
+/// # Errors
+/// 1. Returns a [`eyre::Report`] with human readable messages if the compilation fails.
+pub fn patch_unitary_qir_with_qcs<'ctx>(
+    options: PatchOptions,
+    bitcode: &[u8],
+    context: &'ctx Context,
+) -> Result<Module<'ctx>> {
+    let context_options = ContextOptions {
+        cache_executables: options.cache_executables,
+        rewiring_pragma: options.quil_rewiring_pragma,
+    };
+
+    let mut context = QCSCompilerContext::new_from_data(
+        context,
+        bitcode,
+        options.execution_target,
+        context_options,
+    )?;
+
+    unitary::qir::transpile_module(&mut context).wrap_err("transformation failed")?;
+
+    if options.add_main_entrypoint {
+        crate::interop::entrypoint::add_main_entrypoint(&mut context)?;
+    }
+    Ok(context.module)
+}
+
 /// Signifies output to be recorded at the end of program execution
 #[derive(Clone, Debug)]
 #[cfg_attr(
