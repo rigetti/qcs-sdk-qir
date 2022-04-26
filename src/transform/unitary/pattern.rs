@@ -122,6 +122,16 @@ impl<'ctx> UnitaryPatternMatchContext<'ctx> {
         Ok(pattern_context)
     }
 
+    /// If the program contains any executable instructions (gates, pulses, etc) return that
+    /// information; otherwise, return `None` indicating that the pattern was not matched.
+    pub(crate) fn get_program_data(&self) -> Option<&quil_rs::Program> {
+        if self.quil_program.to_instructions(false).is_empty() {
+            None
+        } else {
+            Some(&self.quil_program)
+        }
+    }
+
     /// Returns the parameters which do not have a constant value.
     pub(crate) fn get_dynamic_parameters(&self) -> Vec<&FloatValue<'ctx>> {
         self.parameters

@@ -13,4 +13,5 @@
 // limitations under the License.
 
 mod pattern;
+pub(crate) mod qir;
 pub(crate) mod quil;
