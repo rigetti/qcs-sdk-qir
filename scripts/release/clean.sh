@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 DELETE=(
-    "dist" 
     "tmp-deps-build" 
     ".release-env"
     $(echo qcs-sdk-qir-llvm*) 
