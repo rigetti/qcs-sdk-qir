@@ -55,3 +55,7 @@ dependencies = ["release-setup", "release-build", "release-archive"]
 
 [tasks.release-clean]
 command = "./scripts/release/clean.sh"
+
+[tasks.release-test-e2e]
+command = "./scripts/release/test-e2e.sh"
+args = ["${@}"]
