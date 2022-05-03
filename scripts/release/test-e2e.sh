@@ -13,10 +13,6 @@ if [ ! -d "$DIST_DIR" ]; then
     echo "$ cargo make release-quick"
 fi
 
-case $1 in
-    "")
-esac
-
 TEST_TARGET=${1:-"qvm"}
 TEST_INPUT=${2:-"tests/fixtures/programs/reduction.bc"}
 
