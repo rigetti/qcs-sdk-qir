@@ -15,7 +15,7 @@ jobs:
           - stable
         llvm_version: [12, 13]
     env:
-      C_SDK_VERSION: v0.1.0
+      C_SDK_VERSION: v0.1.1
       LLVM_VERSION: ${{ matrix.llvm_version }}
       LLVM_FULL_VERSION: ${{ matrix.llvm_version }}.0.1
       TESTING_TAG: v0.0.0-local
