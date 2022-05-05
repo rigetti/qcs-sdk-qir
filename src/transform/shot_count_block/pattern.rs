@@ -552,7 +552,7 @@ fn optional_tag<'ctx>(
 ) -> Option<String> {
     if let Some(OperationArgument::Gep(ptr_value)) = arguments.get(1) {
         let raw_gep = ptr_value.print_to_string().to_string();
-        if raw_gep.contains("@") {
+        if raw_gep.contains('@') {
             // check for i8* type
             let i8_ptr = context
                 .base_context
