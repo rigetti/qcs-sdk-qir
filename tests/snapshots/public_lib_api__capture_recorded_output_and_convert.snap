@@ -1,26 +1,41 @@
 ---
 source: tests/public_lib_api.rs
-expression: "serde_json::to_string_pretty(&output.recorded_output).unwrap()"
+expression: "&output.recorded_output"
 ---
 [
   "shot_start",
   {
-    "result_readout_offset": 0
+    "result_readout_offset": [
+      0,
+      null
+    ]
   },
   "tuple_start",
   {
-    "result_readout_offset": 0
+    "result_readout_offset": [
+      0,
+      null
+    ]
   },
   {
-    "result_readout_offset": 1
+    "result_readout_offset": [
+      1,
+      null
+    ]
   },
   "tuple_end",
   "array_start",
   {
-    "result_readout_offset": 0
+    "result_readout_offset": [
+      0,
+      null
+    ]
   },
   {
-    "result_readout_offset": 0
+    "result_readout_offset": [
+      0,
+      null
+    ]
   },
   "array_end",
   "shot_end"
