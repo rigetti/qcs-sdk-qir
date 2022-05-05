@@ -21,8 +21,8 @@ use inkwell::{
     basic_block::BasicBlock,
     types::AnyTypeEnum,
     values::{
-        BasicValue, BasicValueEnum, FloatValue, InstructionOpcode, InstructionValue, IntValue,
-        PhiValue, PointerValue,
+        AnyValue, BasicValue, BasicValueEnum, FloatValue, InstructionOpcode, InstructionValue,
+        IntValue, PhiValue, PointerValue,
     },
 };
 
@@ -52,6 +52,8 @@ pub(crate) enum OperationArgument<'ctx> {
     Result(u64),
     Parameter(FloatValue<'ctx>),
     Instruction(InstructionValue<'ctx>),
+    Null(PointerValue<'ctx>),
+    Gep(PointerValue<'ctx>),
 }
 
 /// Return the arguments used to invoke a quantum runtime intrinsic, `@__quantum__qis__*__body`, in order.
@@ -63,7 +65,7 @@ pub(crate) fn get_qis_function_arguments<'ctx>(
 
     // The final operand of a call instruction is the function being called
     (0..operand_count - 1)
-        .map(|operand_index| {
+        .map(|operand_index| -> Result<OperationArgument, eyre::Error> {
             let target = instruction
                 .get_operand(operand_index)
                 .ok_or_else(|| eyre!("expected a first operand in Call instruction"))?;
@@ -102,6 +104,19 @@ pub(crate) fn get_qis_function_arguments<'ctx>(
                 } else if let Some(inst) = ptr_value.as_instruction() {
                     Ok(OperationArgument::Instruction(inst))
                 } else {
+                    if ptr_value.is_null() {
+                        return Ok(OperationArgument::Null(ptr_value));
+                    }
+
+                    // check for getelementptr type
+                    if ptr_value
+                        .print_to_string()
+                        .to_string()
+                        .contains("getelementptr")
+                    {
+                        return Ok(OperationArgument::Gep(ptr_value));
+                    }
+
                     // TODO: Support more pointer value types
                     Err(eyre!(
                         "unexpected pointer value {:?} as operand {} of instruction {:?}",

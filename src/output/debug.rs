@@ -50,11 +50,19 @@ impl OutputFormat for DebugOutputFormat {
                                 output.push(format!("[shot:{} end]", shot_id));
                                 break;
                             }
-                            RecordedOutput::ResultReadoutOffset(index) => {
+                            RecordedOutput::ResultReadoutOffset(index, tag) => {
                                 #[allow(clippy::cast_possible_truncation)]
                                 let index = *index as usize;
                                 if let Some(result) = shot.get(index) {
-                                    output.push(format!("[shot:{} result {}]", shot_id, result));
+                                    if let Some(t) = tag {
+                                        output.push(format!(
+                                            "[shot:{} result {} ({})]",
+                                            shot_id, result, t
+                                        ));
+                                    } else {
+                                        output
+                                            .push(format!("[shot:{} result {}]", shot_id, result));
+                                    }
                                 } else {
                                     return Err(Error::NoShotDataAtIndex(shot_id, index));
                                 }
@@ -105,9 +113,9 @@ fn test_execution_result_debug_output() {
         ExecutionResult::I8(vec![vec![1, 2, 3], vec![10, 20, 30], vec![11, 22, 33]]);
     let mapping = [
         RecordedOutput::ShotStart,
-        RecordedOutput::ResultReadoutOffset(0),
-        RecordedOutput::ResultReadoutOffset(1),
-        RecordedOutput::ResultReadoutOffset(2),
+        RecordedOutput::ResultReadoutOffset(0, None),
+        RecordedOutput::ResultReadoutOffset(1, Some("tag-from-source".into())),
+        RecordedOutput::ResultReadoutOffset(2, None),
         RecordedOutput::ShotEnd,
     ];
 
@@ -117,17 +125,17 @@ fn test_execution_result_debug_output() {
     const EXPECTED_OUTPUT: &str = r#"
 [shot:1 start]
 [shot:1 result 1]
-[shot:1 result 2]
+[shot:1 result 2 (tag-from-source)]
 [shot:1 result 3]
 [shot:1 end]
 [shot:2 start]
 [shot:2 result 10]
-[shot:2 result 20]
+[shot:2 result 20 (tag-from-source)]
 [shot:2 result 30]
 [shot:2 end]
 [shot:3 start]
 [shot:3 result 11]
-[shot:3 result 22]
+[shot:3 result 22 (tag-from-source)]
 [shot:3 result 33]
 [shot:3 end]
 "#;
@@ -144,9 +152,9 @@ fn test_out_of_range_debug_output() {
     let execution_result = ExecutionResult::I8(vec![vec![1, 2, 3], vec![10, 20]]);
     let mapping = [
         RecordedOutput::ShotStart,
-        RecordedOutput::ResultReadoutOffset(0),
-        RecordedOutput::ResultReadoutOffset(1),
-        RecordedOutput::ResultReadoutOffset(2),
+        RecordedOutput::ResultReadoutOffset(0, None),
+        RecordedOutput::ResultReadoutOffset(1, None),
+        RecordedOutput::ResultReadoutOffset(2, Some("tag-from-source".into())),
         RecordedOutput::ShotEnd,
     ];
 

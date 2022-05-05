@@ -25,7 +25,8 @@ use eyre::{eyre, Result, WrapErr};
 use inkwell::{
     basic_block::BasicBlock,
     values::{
-        BasicValue, BasicValueEnum, FloatValue, FunctionValue, InstructionOpcode, InstructionValue,
+        AnyValue, BasicValue, BasicValueEnum, FloatValue, FunctionValue, InstructionOpcode,
+        InstructionValue,
     },
 };
 use lazy_static::lazy_static;
@@ -481,6 +482,8 @@ lazy_static! {
     .unwrap();
     static ref RT_RECORD_OUTPUT_INTRINSIC_REGEX: Regex =
         Regex::new("^__quantum__rt__(?P<record_type>.+)_record_output$").unwrap();
+    static ref RT_RECORD_OUTPUT_GEP_GLOBAL: Regex = Regex::new(r"@(?P<ident>\w+)").unwrap();
+    static ref RT_RECORD_OUTPUT_TAG_VALUE: Regex = Regex::new("c\"(?P<text>.+)\\\\00").unwrap();
 }
 
 pub(crate) fn rt_record_instruction<'ctx>(
@@ -502,9 +505,12 @@ pub(crate) fn rt_record_instruction<'ctx>(
                             if let Some(OperationArgument::Result(result_index)) = arguments.get(0)
                             {
                                 let index = pattern_context.read_result_mapping.get(result_index).ok_or_else(|| eyre!("Result index {} was never the target of a measurement operation", result_index))?;
-                                pattern_context
-                                    .recorded_output
-                                    .push(RecordedOutput::ResultReadoutOffset(*index));
+                                pattern_context.recorded_output.push(
+                                    RecordedOutput::ResultReadoutOffset(
+                                        *index,
+                                        optional_tag(context, &arguments),
+                                    ),
+                                );
                             } else {
                                 return Err(eyre!(
                                     "malformed or missing arguments for: __quantum_rt__{}_record_output",
@@ -538,6 +544,36 @@ pub(crate) fn rt_record_instruction<'ctx>(
         }
         _ => Ok(None),
     }
+}
+
+fn optional_tag<'ctx>(
+    context: &QCSCompilerContext<'ctx>,
+    arguments: &[OperationArgument],
+) -> Option<String> {
+    if let Some(OperationArgument::Gep(ptr_value)) = arguments.get(1) {
+        let raw_gep = ptr_value.print_to_string().to_string();
+        if raw_gep.contains("@") {
+            // check for i8* type
+            let i8_ptr = context
+                .base_context
+                .i8_type()
+                .ptr_type(inkwell::AddressSpace::Generic);
+            if ptr_value.get_type() == i8_ptr {
+                if let Some(captures) = RT_RECORD_OUTPUT_GEP_GLOBAL.captures(&raw_gep) {
+                    let ident = &captures["ident"];
+                    let value = context.module.get_global(ident)?;
+
+                    let raw_tag = value.print_to_string().to_string();
+
+                    if let Some(captures) = RT_RECORD_OUTPUT_TAG_VALUE.captures(&raw_tag) {
+                        return Some(captures["text"].to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    None
 }
 
 #[allow(clippy::too_many_lines)]

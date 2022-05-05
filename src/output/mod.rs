@@ -76,7 +76,9 @@ pub trait OutputFormat: Display {
 ///     // function calls, not constructed manually as done here for demonstration purposes.
 ///     let result = &ExecutionResult::I8(vec![vec![1]]);
 ///     let mapping: &[RecordedOutput] = &[
-///         RecordedOutput::ShotStart, RecordedOutput::ResultReadoutOffset(0), RecordedOutput::ShotEnd
+///         RecordedOutput::ShotStart,
+///         RecordedOutput::ResultReadoutOffset(0, Some("tag_value".to_string())),
+///         RecordedOutput::ShotEnd
 ///     ];
 ///
 ///     let output = try_format::<DebugOutputFormat>(result, mapping)?;
