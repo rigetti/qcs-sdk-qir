@@ -65,7 +65,7 @@ pub(crate) fn get_qis_function_arguments<'ctx>(
 
     // The final operand of a call instruction is the function being called
     (0..operand_count - 1)
-        .map(|operand_index| -> Result<OperationArgument, eyre::Error> {
+        .map(|operand_index| {
             let target = instruction
                 .get_operand(operand_index)
                 .ok_or_else(|| eyre!("expected a first operand in Call instruction"))?;
