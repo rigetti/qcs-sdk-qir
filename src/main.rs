@@ -1,4 +1,5 @@
 #![deny(clippy::pedantic)]
+#![cfg(feature = "cli")]
 
 // Copyright 2022 Rigetti Computing
 //
