@@ -1,8 +1,5 @@
 #![deny(clippy::pedantic)]
 
-#[cfg(not(feature = "cli"))]
-compile_error!("the feature 'cli' must be enabled to build the qcs-sdk-qir CLI");
-
 // Copyright 2022 Rigetti Computing
 //
 // Licensed under the Apache License, Version 2.0 (the "License");

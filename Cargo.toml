@@ -40,3 +40,8 @@ default = ["serde_support", "cli"]
 llvm12-0 = ["inkwell/llvm12-0"]
 llvm13-0 = ["inkwell/llvm13-0"]
 serde_support = ["serde", "serde_json"]
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
+required-features = ["cli"]
