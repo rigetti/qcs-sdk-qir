@@ -16,13 +16,13 @@ eyre = "0.6.6"
 lazy_static = "1.4.0"
 log = "0.4.14"
 num-complex = "0.4.0"
-quil-rs = "0.8.5"
+quil-rs = "0.10.1"
 regex = "1.5.4"
 clap = { version = "3.1.6", features = ["derive"] }
 serde_json = { version = "1", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 thiserror = "1"
-qcs = "0.2.0"
+qcs = "0.2.2"
 
 [dependencies.inkwell]
 version = "0.1.0"
