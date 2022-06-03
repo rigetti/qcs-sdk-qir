@@ -1,0 +1,66 @@
+on: [ push, pull_request ]
+
+name: E2E compiler/sdk + QVM integration test 
+jobs:
+  test:
+    name: setup and run qvm integration test
+    runs-on: ubuntu-latest
+    services:
+      quilc:
+        image: rigetti/quilc:latest
+        ports: 
+          - 5555:5555
+      qvm:
+        image: rigetti/qvm:latest
+        ports:
+          - 5000:5000
+        
+    strategy:
+      matrix:
+        rust:
+          - stable
+        llvm_version: [12, 13]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install LLVM
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "${{ matrix.llvm_version }}.0"
+
+      - name: Install missing LLVM deps
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-key adv --keyserver hkps://keyserver.ubuntu.com --recv-key C99B11DEB97541F0
+          sudo apt-get update && sudo apt-get install -y libtinfo5 cmake
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          override: true
+
+      - name: Cache Rust environment
+        uses: Swatinem/rust-cache@v1
+
+      - name: Install cargo-make
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: --debug cargo-make
+      
+      - name: Install build environment dependencies
+        uses: lukka/get-cmake@latest
+
+      - name: Build SDK CLI & run integrations against QVM
+        env:
+          LLVM_FEATURE: llvm${{ matrix.llvm_version }}-0
+        run: |
+          cargo make release-setup
+          cargo make release-build
+          
+          # use all test fixtures:
+          for bc in tests/fixtures/programs/*.bc; do 
+            cargo make release-test-e2e qvm "$bc"
+          done
