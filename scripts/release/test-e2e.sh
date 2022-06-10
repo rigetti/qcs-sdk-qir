@@ -44,7 +44,8 @@ case $TEST_TARGET in
     ;;
 esac
 
-echo "Transforming '${TEST_INPUT}', compiling into executable."
+echo "Transforming: '${TEST_INPUT}' -> '${DIST_DIR}/output.bc'"
+echo "Compiling: '${DIST_DIR}/program'"
 
 # transform and compile the program, then run against specified target
 case $OS in
