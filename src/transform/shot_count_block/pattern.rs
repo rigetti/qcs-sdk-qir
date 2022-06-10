@@ -501,7 +501,12 @@ pub(crate) fn rt_record_instruction<'ctx>(
                             let arguments = get_qis_function_arguments(context, instruction)?;
                             if let Some(OperationArgument::Result(result_index)) = arguments.get(0)
                             {
-                                let index = pattern_context.read_result_mapping.get(result_index).ok_or_else(|| eyre!("Result index {} was never the target of a measurement operation", result_index))?;
+                                let next_ro_index =
+                                    pattern_context.read_result_mapping.len() as u64;
+                                let index = pattern_context.read_result_mapping.entry(*result_index).or_insert_with(|| {
+                                    log::info!("Result index {} was read, but never the target of a measurement operation, recorded output value should be 0", result_index);
+                                    next_ro_index
+                                });
                                 pattern_context
                                     .recorded_output
                                     .push(RecordedOutput::ResultReadoutOffset(*index));

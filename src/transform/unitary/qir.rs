@@ -369,5 +369,7 @@ mod test {
 
         make_snapshot_test!(bell_state);
         make_snapshot_test!(entrypoint_attribute);
+        make_snapshot_test!(qiskit_qir_measure);
+        make_snapshot_test!(qiskit_qir_allow_unmeasured);
     }
 }
