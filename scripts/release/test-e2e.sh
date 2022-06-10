@@ -47,20 +47,30 @@ esac
 echo "Transforming: '${TEST_INPUT}' -> '${DIST_DIR}/output.bc'"
 echo "Compiling: '${DIST_DIR}/program'"
 
+
 # transform and compile the program, then run against specified target
 case $OS in
     "darwin"|"linux")
         if [ $OS = "darwin" ]; then
+            RESTORE_LIBRARY_PATH=$DYLD_LIBRARY_PATH
             export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:./lib
         else
+            RESTORE_LIBRARY_PATH=$LD_LIBRARY_PATH
             export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib
         fi
-
+                
         pushd $DIST_DIR
         ./qcs-sdk-qir transform --add-main-entrypoint --target $TEST_TARGET $TEST_INPUT output.bc
         clang -Llib -lqcs -Llib -lhelper output.bc -o program
         ./program
         popd
+        
+        
+        if [ $OS = "darwin" ]; then
+            export DYLD_LIBRARY_PATH=$RESTORE_LIBRARY_PATH
+        else
+            export LD_LIBRARY_PATH=$RESTORE_LIBRARY_PATH
+        fi
     ;;
 
     *)
