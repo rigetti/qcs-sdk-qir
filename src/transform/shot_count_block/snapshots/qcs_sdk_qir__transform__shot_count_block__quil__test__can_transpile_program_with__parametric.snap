@@ -6,6 +6,6 @@ DECLARE __qir_param REAL[1]
 DECLARE ro BIT[0]
 RZ(__qir_param[0]) 0
 RZ(__qir_param[0]) 0
-RZ(2) 0
+RZ(2.0) 0
 RZ(12.123456789) 0
 

@@ -12,7 +12,7 @@ source_filename = "./tests/fixtures/programs/cartesian_rotations.ll"
 
 @executable_cache = private global %ExecutableCache* null
 @parameter_memory_region_name = private unnamed_addr constant [12 x i8] c"__qir_param\00", align 1
-@quil_program = private unnamed_addr constant [43 x i8] c"DECLARE ro BIT[0]\0ARX(2) 0\0ARY(2) 0\0ARZ(2) 0\0A\00", align 1
+@quil_program = private unnamed_addr constant [49 x i8] c"DECLARE ro BIT[0]\0ARX(2.0) 0\0ARY(2.0) 0\0ARZ(2.0) 0\0A\00", align 1
 
 declare void @__quantum__qis__rx__body(double, %Qubit*) local_unnamed_addr
 
@@ -36,7 +36,7 @@ body_cleanup:                                     ; preds = %body
   br label %exit
 
 body_execution:                                   ; preds = %entry, <null operand!>
-  %3 = call %Executable* @executable_from_quil(i8* getelementptr inbounds ([43 x i8], [43 x i8]* @quil_program, i32 0, i32 0))
+  %3 = call %Executable* @executable_from_quil(i8* getelementptr inbounds ([49 x i8], [49 x i8]* @quil_program, i32 0, i32 0))
   call void @wrap_in_shots(%Executable* %3, i32 1000)
   %4 = call %ExecutionResult* @execute_on_qvm(%Executable* %3)
   call void @panic_on_failure(%ExecutionResult* %4)
