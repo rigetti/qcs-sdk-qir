@@ -30,6 +30,7 @@ pub use context::target::ExecutionTarget;
 /// This module contains different functions intended for use as LLVM passes.
 pub(crate) mod context;
 pub(crate) mod interop;
+#[cfg(feature = "output")]
 pub mod output;
 pub(crate) mod transform;
 
