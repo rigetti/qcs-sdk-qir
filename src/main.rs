@@ -14,21 +14,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::path::PathBuf;
+use std::{path::PathBuf, str::FromStr};
 
 use clap::Parser;
-use eyre::Result;
+use eyre::{Report, Result};
 
 use qcs_sdk_qir::{ExecutionTarget, PatchOptions};
 
 #[derive(Parser, Debug)]
-#[structopt(name = "QIRQuilTranslator", about = "Translate QIR to Quil")]
+#[clap(
+    name = "QCS SDK QIR Command Line Tool",
+    about = "Transform & translate QIR programs to target Rigetti systems."
+)]
 enum QcsQirCli {
     #[clap(
         name = "transform",
         about = "Given an LLVM bitcode file, replace quantum intrinsics with calls to execute equivalent Quil on Rigetti QCS"
     )]
     Transform {
+        #[clap(long, default_value = "shot-count")]
+        format: QirFormat,
+
         llvm_bitcode_path: PathBuf,
 
         #[clap(parse(from_os_str))]
@@ -55,7 +61,30 @@ enum QcsQirCli {
         name = "transpile-to-quil",
         about = "Given an LLVM bitcode file, output the equivalent Quil program"
     )]
-    TranspileToQuil { llvm_bitcode_path: PathBuf },
+    TranspileToQuil {
+        #[clap(long, default_value = "shot-count")]
+        format: QirFormat,
+
+        llvm_bitcode_path: PathBuf,
+    },
+}
+
+#[derive(Debug)]
+enum QirFormat {
+    ShotCount,
+    Unitary,
+}
+
+impl FromStr for QirFormat {
+    type Err = Report;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "shot-count" => Ok(QirFormat::ShotCount),
+            "unitary" => Ok(QirFormat::Unitary),
+            _ => Err(eyre::eyre!("unrecognized QIR format")),
+        }
+    }
 }
 
 fn main() -> Result<()> {
@@ -64,6 +93,7 @@ fn main() -> Result<()> {
     let opt = QcsQirCli::parse();
     match opt {
         QcsQirCli::Transform {
+            format,
             add_main_entrypoint,
             llvm_bitcode_path,
             bitcode_out,
@@ -79,7 +109,14 @@ fn main() -> Result<()> {
                 quil_rewiring_pragma,
             };
             let context = inkwell::context::Context::create();
-            let module = qcs_sdk_qir::patch_qir_with_qcs(options, &bitcode, &context)?;
+            let module = match format {
+                QirFormat::ShotCount => {
+                    qcs_sdk_qir::patch_qir_with_qcs(options, &bitcode, &context)?
+                }
+                QirFormat::Unitary => {
+                    qcs_sdk_qir::patch_unitary_qir_with_qcs(options, &bitcode, &context)?
+                }
+            };
             match bitcode_out {
                 Some(path) => {
                     module.write_bitcode_to_path(&path);
@@ -90,18 +127,38 @@ fn main() -> Result<()> {
             }
             Ok(())
         }
-        QcsQirCli::TranspileToQuil { llvm_bitcode_path } => {
+        QcsQirCli::TranspileToQuil {
+            format,
+            llvm_bitcode_path,
+        } => {
             let data = std::fs::read(llvm_bitcode_path)?;
-            let output = qcs_sdk_qir::transpile_qir_to_quil(&data)?;
 
-            #[cfg(feature = "serde_support")]
-            println!("{}", serde_json::to_string_pretty(&output)?);
+            match format {
+                QirFormat::ShotCount => {
+                    let output = qcs_sdk_qir::transpile_qir_to_quil(&data)?;
 
-            #[cfg(not(feature = "serde_support"))]
-            {
-                println!("shot count: {}\n", output.shot_count);
-                println!("quil:\n{}", output.program.to_string(true));
-                println!("recorded output:\n{:#?}", output.recorded_output);
+                    #[cfg(feature = "serde_support")]
+                    println!("{}", serde_json::to_string_pretty(&output)?);
+
+                    #[cfg(not(feature = "serde_support"))]
+                    {
+                        println!("shot count: {}\n", output.shot_count);
+                        println!("quil:\n{}", output.program.to_string(true));
+                        println!("recorded output:\n{:#?}", output.recorded_output);
+                    }
+                }
+                QirFormat::Unitary => {
+                    let output = qcs_sdk_qir::transpile_unitary_qir_to_quil(&data)?;
+
+                    #[cfg(feature = "serde_support")]
+                    println!("{}", serde_json::to_string_pretty(&output)?);
+
+                    #[cfg(not(feature = "serde_support"))]
+                    {
+                        println!("quil:\n{}", output.program.to_string(true));
+                        println!("recorded output:\n{:#?}", output.recorded_output);
+                    }
+                }
             }
 
             Ok(())

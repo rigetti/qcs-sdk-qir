@@ -1,5 +1,3 @@
-//! This module concerns itself with the handling of patterns in spans of instructions.
-
 // Copyright 2022 Rigetti Computing
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,19 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{
-    collections::{hash_map::DefaultHasher, HashMap},
-    convert::TryFrom,
-    hash::{Hash, Hasher},
-};
+use std::collections::HashMap;
 
-use either::Either;
-use eyre::{eyre, Result, WrapErr};
+use eyre::{eyre, Result};
 use inkwell::{
     basic_block::BasicBlock,
-    values::{
-        BasicValue, BasicValueEnum, FloatValue, FunctionValue, InstructionOpcode, InstructionValue,
-    },
+    values::{FloatValue, InstructionOpcode, InstructionValue},
 };
 use lazy_static::lazy_static;
 use log::{debug, info};
@@ -39,8 +30,7 @@ use regex::Regex;
 use crate::{
     context::QCSCompilerContext,
     interop::instruction::{
-        get_called_function_name, get_qis_function_arguments, integer_value_to_u64,
-        operand_to_integer, OperationArgument,
+        get_called_function_name, get_qis_function_arguments, OperationArgument,
     },
     transform::PARAMETER_MEMORY_REGION_NAME,
     RecordedOutput,
@@ -51,45 +41,28 @@ use crate::{
 /// * what the next instruction following the pattern is, if any.
 type PatternResult<'ctx, T> = Option<(Option<InstructionValue<'ctx>>, T)>;
 
-/// A `ShotCountPatternMatchContext` accumulates state as it scans a QIR program.
-/// It is used to infer a shot count from a fixed count loop wrapping some number of
-/// quantum and classical instructions within a basic block.
+/// A `UnitaryPatternMatchContext` accumulates state as it scans a QIR program.
+/// It is used to extract a single quantum program from a QIR program, without shot count
+/// or any classical instructions beyond a final return statement.
 ///
-/// The pattern it looks for is the following:
+/// The pattern it looks for within a basic block is the following:
 ///
-/// * loop start and shot count - see [`shot_count_loop_start`].
-/// * any number of the following:
-///   * quantum instructions, which it earmarks for removal from the program, transpiles to Quil,
-///     and appends to its running Quil program - see [`quantum_instruction`]
-///   * classical instructions, which are ignored and left in place.
-/// * a shot count increment and branch instruction - see [`shot_count_loop_end`].
+/// * A sequence of these instructions only:
+///   * Quantum Instructions - `quantum_qis` intrinsics
+///   * Select Quantum Runtime Instructions - `quantum_rt`
+/// * Terminated by _exactly_ a `ret void`
+///
+/// If any other instructions are encountered, an error is returned.
 #[derive(Debug, Default)]
-pub(crate) struct ShotCountPatternMatchContext<'ctx> {
-    // The instruction used to initialize the shot count value
-    // pub loop_initializer: Option<InstructionValue<'ctx>>,
-    /// Hash of the instruction used to initialize the shot count value.
-    /// By using the hash, we don't need to maintain a reference to the instruction itself.
-    pub(crate) initial_instruction: Option<InstructionValue<'ctx>>,
-
-    /// Hash of the instruction used to initialize the shot count value.
-    /// By using the hash, we don't need to maintain a reference to the instruction itself.
-    pub(crate) initial_instruction_hash: Option<u64>,
-
+pub(crate) struct UnitaryPatternMatchContext<'ctx> {
     /// The quil program transpiled from quantum intrinsics
     pub(crate) quil_program: quil_rs::Program,
 
     /// Signifies output to be recorded at the end of program execution
     pub(crate) recorded_output: Vec<RecordedOutput>,
 
-    /// The shot count inferred from the loop instructions
-    pub(crate) shot_count: Option<u64>,
-
     /// A list of instructions to remove from the program (for substitution with Quil)
     pub(crate) instructions_to_remove: Vec<InstructionValue<'ctx>>,
-
-    /// The terminating instruction to append to the BasicBlock in place of a conditional
-    /// branch on shot count
-    pub(crate) next_basic_block: Option<BasicBlock<'ctx>>,
 
     /// Mapping of (read_result *Result index)->(ro memory region index)
     pub(crate) read_result_mapping: HashMap<u64, u64>,
@@ -105,42 +78,19 @@ pub(crate) struct ShotCountPatternMatchContext<'ctx> {
     pub(crate) use_active_reset: bool,
 }
 
-impl<'ctx> ShotCountPatternMatchContext<'ctx> {
-    /// If the program contains any executable instructions (gates, pulses, etc) and a shot count has been inferred,
-    /// return that information; otherwise, return `None` indicating that the pattern was not matched.
-    pub(crate) fn get_program_data(&self) -> Option<(&quil_rs::Program, u64)> {
-        if let Some(shots) = self.shot_count {
-            if self.quil_program.to_instructions(false).is_empty() {
-                None
-            } else {
-                Some((&self.quil_program, shots))
-            }
-        } else {
-            None
-        }
-    }
-
+impl<'ctx> UnitaryPatternMatchContext<'ctx> {
     /// Build the pattern context from a basic block.
     ///
     /// # Arguments
     ///
     /// * `context`: overall compiler context
     /// * `basic_block`: the subject block to be searched for the pattern
-    /// * `visited_functions`: list of function names which have already been transpiled. Used to prevent recursion loops.
-    /// * `function_call_callback`: callback to be invoked when a function call is found within the block, in order to recursively
-    ///    transpile an LLVM module.
     pub(crate) fn from_basic_block(
         context: &mut QCSCompilerContext<'ctx>,
         basic_block: BasicBlock<'ctx>,
-        visited_functions: &[&str],
-        function_call_callback: fn(
-            &mut QCSCompilerContext<'ctx>,
-            FunctionValue<'ctx>,
-            &[&str],
-        ) -> Result<()>,
     ) -> Result<Self> {
         let mut next_instruction = basic_block.get_first_instruction();
-        let mut pattern_context = ShotCountPatternMatchContext::default();
+        let mut pattern_context = UnitaryPatternMatchContext::default();
 
         info!(
             "starting transpile: block {}",
@@ -149,61 +99,37 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
 
         while let Some(instruction) = next_instruction {
             // If we haven't yet found the loop start...
-            if pattern_context.initial_instruction.is_none() {
-                // Check if we've found it in this instruction. If not, continue on to the next instruction until we do find it.
-                // FIXME: ensure we encounter this first (i.e. the pattern must be matched in order)
-                if let Some((pattern_instruction, _)) =
-                    shot_count_loop_start(&mut pattern_context, instruction)
-                {
-                    debug!("matched shot count start: {:?}", instruction);
-                    pattern_context
-                        .recorded_output
-                        .push(RecordedOutput::ShotStart);
-                    next_instruction = pattern_instruction;
-                    continue;
-                }
-            } else if let Some((pattern_instruction, _)) =
+            if let Some((pattern_instruction, _)) =
                 quantum_instruction(context, &mut pattern_context, instruction)?
             {
                 debug!("matched quantum instruction: {:?}", instruction);
                 next_instruction = pattern_instruction;
-                continue;
             } else if let Some((pattern_instruction, _)) =
                 rt_record_instruction(context, &mut pattern_context, instruction)?
             {
                 debug!("matched rt_record instruction: {:?}", instruction);
                 next_instruction = pattern_instruction;
-                continue;
-            } else if let Some((_, _)) =
-                shot_count_loop_end(context, &mut pattern_context, instruction)?
-            {
-                debug!("matched shot count end: {:?}", instruction);
-                pattern_context
-                    .recorded_output
-                    .push(RecordedOutput::ShotEnd);
-                break;
-            } else if instruction.get_opcode() == InstructionOpcode::Call {
-                // TODO: handle callbr?
-                if let Some(Either::Left(BasicValueEnum::PointerValue(pointer_value))) =
-                    instruction.get_operand(0)
-                {
-                    let function_name = pointer_value.get_name().to_str()?;
-                    if !visited_functions.contains(&function_name) {
-                        if let Some(function) = context.module.get_function(function_name) {
-                            let mut visited_functions = Vec::from(visited_functions);
-                            visited_functions.push(function_name);
-                            function_call_callback(context, function, &visited_functions)?;
-                            next_instruction = instruction.get_next_instruction();
-                            continue;
-                        }
-                    }
-                }
+            } else if instruction.get_opcode() == InstructionOpcode::Return {
+                return Ok(pattern_context);
+            } else {
+                return Err(eyre::eyre!(
+                    "found instruction disallowed in Unitary QIR: {:?}",
+                    instruction
+                ));
             }
-
-            next_instruction = instruction.get_next_instruction();
         }
 
         Ok(pattern_context)
+    }
+
+    /// If the program contains any executable instructions (gates, pulses, etc) return that
+    /// information; otherwise, return `None` indicating that the pattern was not matched.
+    pub(crate) fn get_program_data(&self) -> Option<&quil_rs::Program> {
+        if self.quil_program.to_instructions(false).is_empty() {
+            None
+        } else {
+            Some(&self.quil_program)
+        }
     }
 
     /// Returns the parameters which do not have a constant value.
@@ -212,163 +138,6 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
             .iter()
             .filter(|v| !v.is_const())
             .collect::<Vec<&FloatValue>>()
-    }
-}
-
-/// Match the initial instruction of a shot-count loop. This may take one of the following forms:
-///
-/// * a `phi` instruction with two branches, where one of the branches is the name of the current basic block
-///   and the other branch sets a constant value of `1`
-///
-/// Example:
-///
-/// ```llvm
-/// %116 = phi i64 [ %119, %body__1.i15.i23 ], [ 1, %body__1.i12.i19 ]
-/// ```
-///
-/// If matched, this function returns the variable name assigned by the `phi` operand, for use in identifying the end of the loop,
-/// as well as the number of shots.
-pub(crate) fn shot_count_loop_start<'a, 'ctx>(
-    pattern_context: &'a mut ShotCountPatternMatchContext<'ctx>,
-    instruction: InstructionValue<'ctx>,
-) -> PatternResult<'ctx, ()> {
-    match instruction.get_opcode() {
-        inkwell::values::InstructionOpcode::Phi => {
-            // println!("Phi instruction: {:?}", instruction);
-            // TODO: figure out references here to prevent this error:
-            // While deleting: i64 %
-            // Use still stuck around after Def is destroyed:  <badref> = phi i64 [ <badref>, %body ], [ 1, blockaddress
-            // pattern_context.variable_name = Some(instruction.clone());
-            pattern_context.initial_instruction = Some(instruction);
-            // pattern_context.instructions_to_remove.push(instruction);
-
-            let mut hasher = DefaultHasher::new();
-            instruction.hash(&mut hasher);
-            pattern_context.initial_instruction_hash = Some(hasher.finish());
-            Some((instruction.get_next_instruction(), ()))
-        }
-        _ => None,
-    }
-}
-
-/// Match the final instructions of a shot-count loop, which increment the shot count,
-/// test for equality to the number of shots, and then rev
-///
-/// Example:
-///
-/// ```llvm
-/// %119 = add nuw nsw i64 %116, 1
-/// %120 = icmp ult i64 %116, 1000
-/// br i1 %120, label %body__1.i15.i23, label %body__1.i18.i27
-/// ```
-///
-/// These three instructions must immediately follow one another as depicted here.
-///
-/// If matched, this function returns the shot count.
-pub(crate) fn shot_count_loop_end<'a, 'ctx>(
-    context: &QCSCompilerContext,
-    pattern_context: &'a mut ShotCountPatternMatchContext<'ctx>,
-    instruction: InstructionValue<'ctx>,
-) -> Result<PatternResult<'ctx, ()>> {
-    match instruction.get_opcode() {
-        inkwell::values::InstructionOpcode::Add => {
-            // We only want to match spans starting with an add of constant 1 to the same register
-            // initialized at the beginning of the block, i.e. `add nuw nsw i64 %0, 1`
-            let shot_count_increment_is_1 = instruction
-                .get_operand(1)
-                .and_then(operand_to_integer)
-                .and_then(|integer| integer_value_to_u64(context, integer))
-                .map_or(false, |int_value| int_value == 1);
-
-            if shot_count_increment_is_1 {
-                // Here: test that the target of the instruction is same as the shot count start variable
-                if let Some(next_instruction) = instruction.get_next_instruction() {
-                    if next_instruction.get_opcode() == inkwell::values::InstructionOpcode::ICmp {
-                        // Here: test that the first operand is a constant; extract the shot count
-                        // and save that into the pattern context
-                        if let Some(Either::Left(BasicValueEnum::IntValue(_))) =
-                            next_instruction.get_operand(0)
-                        {
-                            // Test that the first operand is the shot count variable (the initial Phi instruction)
-                            let matches_shot_count_loop_start =
-                                if let Some(instr) = pattern_context.initial_instruction {
-                                    next_instruction
-                                        .get_operand_use(0)
-                                        .ok_or_else(|| eyre!("No operand use for operand 0"))?
-                                        .get_used_value()
-                                        .left()
-                                        .ok_or_else(|| eyre!("Operand was not a basic value"))?
-                                        .as_instruction_value()
-                                        == Some(instr)
-                                } else {
-                                    false
-                                };
-
-                            if matches_shot_count_loop_start {
-                                let operand = next_instruction.get_operand(1);
-                                if let Some(Either::Left(BasicValueEnum::IntValue(operand_value))) =
-                                    operand
-                                {
-                                    let shot_count = u64::try_from(
-                                        operand_value
-                                            .get_sign_extended_constant()
-                                            .ok_or_else(|| eyre!("No constant value"))?,
-                                    )
-                                    .wrap_err("shot count value must be non-negative")?;
-
-                                    if let Some(final_instruction) =
-                                        next_instruction.get_next_instruction()
-                                    {
-                                        // Test that it's branching on the correct instruction value (the result of the comparison)
-                                        let branching_on_loop_variable = next_instruction
-                                            .get_first_use()
-                                            == final_instruction.get_operand_use(0);
-
-                                        if final_instruction.get_opcode() == InstructionOpcode::Br
-                                            && branching_on_loop_variable
-                                        {
-                                            pattern_context.shot_count = Some(shot_count);
-
-                                            if let Some(Either::Right(next_basic_block)) =
-                                                final_instruction.get_operand(1)
-                                            {
-                                                pattern_context.next_basic_block =
-                                                    Some(next_basic_block);
-                                            }
-                                        } else {
-                                            return Err(eyre!("expected branch instruction to end shot count block, got {:?}", final_instruction));
-                                        }
-                                    } else {
-                                        return Err(eyre!("expected a branch instruction to end shot count block, none present"));
-                                    }
-                                } else {
-                                    return Err(eyre!(
-                                        "expected integer operand, got {:?}",
-                                        operand
-                                    ));
-                                }
-                            } else {
-                                return Err(eyre!(
-                                    "expected\n{:?}\nto equal\n{:?}",
-                                    next_instruction
-                                        .get_operand_use(0)
-                                        .ok_or_else(|| eyre!("No operand use for operand 0"))?
-                                        .get_used_value()
-                                        .left()
-                                        .ok_or_else(|| eyre!("Operand was not a basic value"))?
-                                        .as_instruction_value(),
-                                    pattern_context.initial_instruction
-                                ));
-                            }
-                        }
-                    }
-
-                    return Ok(Some((next_instruction.get_next_instruction(), ())));
-                }
-            }
-            Ok(None)
-        }
-        _ => Ok(None),
     }
 }
 
@@ -392,7 +161,7 @@ macro_rules! match_qis_argument {
 /// Given a `FloatValue` which may be the parameter of a QIS intrinsic call, return the Quil Expression
 /// which will be used to store its value at execution time.
 fn get_quil_parameter_expression<'ctx>(
-    pattern_context: &mut ShotCountPatternMatchContext<'ctx>,
+    pattern_context: &mut UnitaryPatternMatchContext<'ctx>,
     float_value: FloatValue<'ctx>,
 ) -> Expression {
     if let Some((constant, _)) = float_value.get_constant() {
@@ -409,7 +178,7 @@ fn get_quil_parameter_expression<'ctx>(
 /// Given a `FloatValue` to be used as the parameter to a gate, return the index within the
 /// Quil `MemoryReference` that should be used to store this parameter's value.
 pub(crate) fn get_quil_parameter_index<'ctx>(
-    pattern_context: &mut ShotCountPatternMatchContext<'ctx>,
+    pattern_context: &mut UnitaryPatternMatchContext<'ctx>,
     float_value: FloatValue<'ctx>,
 ) -> usize {
     if let Some(index) = pattern_context
@@ -426,7 +195,7 @@ pub(crate) fn get_quil_parameter_index<'ctx>(
 
 #[allow(clippy::too_many_arguments)]
 fn add_gate_instruction<'ctx>(
-    pattern_context: &mut ShotCountPatternMatchContext<'ctx>,
+    pattern_context: &mut UnitaryPatternMatchContext<'ctx>,
     arguments: &[OperationArgument<'ctx>],
     function_name: &str,
     name: &str,
@@ -485,7 +254,7 @@ lazy_static! {
 
 pub(crate) fn rt_record_instruction<'ctx>(
     context: &QCSCompilerContext<'ctx>,
-    pattern_context: &mut ShotCountPatternMatchContext<'ctx>,
+    pattern_context: &mut UnitaryPatternMatchContext<'ctx>,
     instruction: InstructionValue<'ctx>,
 ) -> Result<PatternResult<'ctx, ()>> {
     match instruction.get_opcode() {
@@ -548,7 +317,7 @@ pub(crate) fn rt_record_instruction<'ctx>(
 #[allow(clippy::too_many_lines)]
 pub(crate) fn quantum_instruction<'ctx>(
     context: &QCSCompilerContext<'ctx>,
-    pattern_context: &mut ShotCountPatternMatchContext<'ctx>,
+    pattern_context: &mut UnitaryPatternMatchContext<'ctx>,
     instruction: InstructionValue<'ctx>,
 ) -> Result<PatternResult<'ctx, ()>> {
     match instruction.get_opcode() {

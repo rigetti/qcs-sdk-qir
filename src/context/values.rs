@@ -23,7 +23,7 @@ use inkwell::{
 };
 
 use crate::interop::entrypoint::get_entry_function;
-use crate::transform::shot_count_block::PARAMETER_MEMORY_REGION_NAME;
+use crate::transform::PARAMETER_MEMORY_REGION_NAME;
 
 use super::{target::ExecutionTarget, types::Types};
 

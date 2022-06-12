@@ -1,48 +1,42 @@
 ---
-source: src/transform/shot_count_block/qir.rs
+source: src/transform/unitary/qir.rs
 expression: context.module.print_to_string().to_str().unwrap()
 ---
 ; ModuleID = 'qcs'
-source_filename = "./tests/fixtures/programs/swap.ll"
+source_filename = "./tests/fixtures/programs/unitary/bell_state.ll"
 
 %ExecutableCache = type opaque
 %Qubit = type opaque
+%Result = type opaque
 %Executable = type opaque
 %ExecutionResult = type opaque
 
 @executable_cache = private global %ExecutableCache* null
 @parameter_memory_region_name = private unnamed_addr constant [12 x i8] c"__qir_param\00", align 1
-@quil_program = private unnamed_addr constant [28 x i8] c"DECLARE ro BIT[0]\0ASWAP 1 2\0A\00", align 1
+@quil_program = private unnamed_addr constant [64 x i8] c"DECLARE ro BIT[2]\0AH 0\0ACNOT 0 1\0AMEASURE 0 ro[0]\0AMEASURE 1 ro[1]\0A\00", align 1
 
-declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*) local_unnamed_addr
+declare void @__quantum__qis__h__body(%Qubit*) local_unnamed_addr
+
+declare void @__quantum__qis__cnot__body(%Qubit*, %Qubit*) local_unnamed_addr
+
+declare void @__quantum__qis__mz__body(%Qubit*, %Result*) local_unnamed_addr
+
+declare i1 @__quantum__qis__read_result__body(%Result*) local_unnamed_addr
 
 define internal fastcc void @QuantumApplication__Run__body() unnamed_addr {
 entry:
   call void @populate_executable_array()
-  br label %body_execution
+  br label %entry_execution
 
-body:                                             ; preds = %body, %body_execution
-  %0 = phi i64 [ %1, %body ], [ 1, %body_execution ]
-  %1 = add nuw nsw i64 %0, 1
-  %2 = icmp ult i64 %0, 1000
-  br i1 %2, label %body, label %body_cleanup
-
-body_cleanup:                                     ; preds = %body
-  call void @free_execution_result(%ExecutionResult* %4)
-  br label %exit
-
-body_execution:                                   ; preds = %entry, <null operand!>
-  %3 = call %Executable* @executable_from_quil(i8* getelementptr inbounds ([28 x i8], [28 x i8]* @quil_program, i32 0, i32 0))
-  call void @wrap_in_shots(%Executable* %3, i32 1000)
-  %4 = call %ExecutionResult* @execute_on_qvm(%Executable* %3)
-  call void @panic_on_failure(%ExecutionResult* %4)
-  br label %body
-
-5:                                                ; No predecessors!
-  br label %exit
-
-exit:                                             ; preds = %body_cleanup, %5, <null operand!>
+entry_cleanup:                                    ; preds = %entry_execution
+  call void @free_execution_result(%ExecutionResult* %1)
   ret void
+
+entry_execution:                                  ; preds = %entry
+  %0 = call %Executable* @executable_from_quil(i8* getelementptr inbounds ([64 x i8], [64 x i8]* @quil_program, i32 0, i32 0))
+  %1 = call %ExecutionResult* @execute_on_qvm(%Executable* %0)
+  call void @panic_on_failure(%ExecutionResult* %1)
+  br label %entry_cleanup
 }
 
 declare %Executable* @executable_from_quil(i8*)

@@ -13,3 +13,6 @@
 // limitations under the License.
 
 pub(crate) mod shot_count_block;
+pub(crate) mod unitary;
+
+pub(crate) const PARAMETER_MEMORY_REGION_NAME: &str = "__qir_param";

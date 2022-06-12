@@ -1,0 +1,104 @@
+---
+source: src/transform/shot_count_block/qir.rs
+expression: context.module.print_to_string().to_str().unwrap()
+---
+; ModuleID = 'qcs'
+source_filename = "tests/fixtures/programs/entrypoint_attribute.ll"
+
+%ExecutableCache = type opaque
+%Qubit = type opaque
+%Result = type opaque
+%Executable = type opaque
+%ExecutionResult = type opaque
+
+@executable_cache = private global %ExecutableCache* null
+@parameter_memory_region_name = private unnamed_addr constant [12 x i8] c"__qir_param\00", align 1
+@quil_program = private unnamed_addr constant [138 x i8] c"DECLARE ro BIT[1]\0ARESET\0ACNOT 1 0\0ACNOT 1 0\0AH 0\0AH 1\0AS 1\0AH 1\0ACNOT 1 0\0ACNOT 1 0\0AH 1\0ADAGGER S 1\0AH 1\0AH 0\0AH 2\0ACZ 2 0\0ACZ 2 1\0AH 2\0AMEASURE 2 ro[0]\0A\00", align 1
+
+declare void @__quantum__qis__reset__body(%Qubit*) local_unnamed_addr
+
+declare void @__quantum__qis__s__body(%Qubit*) local_unnamed_addr
+
+declare void @__quantum__qis__s__adj(%Qubit*) local_unnamed_addr
+
+declare void @__quantum__qis__cnot__body(%Qubit*, %Qubit*) local_unnamed_addr
+
+declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*) local_unnamed_addr
+
+declare void @__quantum__qis__h__body(%Qubit*) local_unnamed_addr
+
+declare void @__quantum__qis__rz__body(double, %Qubit*) local_unnamed_addr
+
+; Function Attrs: nofree nosync nounwind readnone speculatable willreturn
+declare double @llvm.pow.f64(double, double) #0
+
+declare void @__quantum__qis__mz__body(%Qubit*, %Result*) local_unnamed_addr
+
+declare i1 @__quantum__qis__read_result__body(%Result*) local_unnamed_addr
+
+define internal fastcc void @some_function() unnamed_addr #1 {
+entry:
+  call void @populate_executable_array()
+  br label %body_execution
+
+body:                                             ; preds = %body, %body_execution
+  %0 = phi i64 [ %spec.select.i17.i53, %body ], [ 0, %body_execution ]
+  %1 = phi i64 [ %4, %body ], [ 1, %body_execution ]
+  %2 = call i1 @get_readout_bit(%ExecutionResult* %7, i64 %1, i64 0)
+  %3 = zext i1 %2 to i64
+  %spec.select.i17.i53 = add i64 %0, %3
+  %4 = add nuw nsw i64 %1, 1
+  %5 = icmp ult i64 %1, 1000
+  br i1 %5, label %body, label %body_cleanup
+
+body_cleanup:                                     ; preds = %body
+  call void @free_execution_result(%ExecutionResult* %7)
+  br label %exit
+
+body_execution:                                   ; preds = %entry, <null operand!>
+  %6 = call %Executable* @executable_from_quil(i8* getelementptr inbounds ([138 x i8], [138 x i8]* @quil_program, i32 0, i32 0))
+  call void @wrap_in_shots(%Executable* %6, i32 1000)
+  %7 = call %ExecutionResult* @execute_on_qvm(%Executable* %6)
+  call void @panic_on_failure(%ExecutionResult* %7)
+  br label %body
+
+exit:                                             ; preds = %body_cleanup, <null operand!>
+  ret void
+}
+
+declare %Executable* @executable_from_quil(i8*)
+
+declare %ExecutionResult* @execute_on_qpu(%Executable*, i8*)
+
+declare %ExecutionResult* @execute_on_qvm(%Executable*)
+
+declare void @free_executable(%Executable*)
+
+declare void @free_execution_result(%ExecutionResult*)
+
+declare i1 @get_readout_bit(%ExecutionResult*, i64, i64)
+
+declare void @panic_on_failure(%ExecutionResult*)
+
+declare void @set_param(%Executable*, i8*, i32, double)
+
+declare void @wrap_in_shots(%Executable*, i32)
+
+declare %ExecutableCache* @create_executable_cache(i32)
+
+declare void @add_executable_cache_item(%ExecutableCache*, i32, i8*)
+
+declare %Executable* @read_from_executable_cache(%ExecutableCache*, i32)
+
+declare void @free_executable_cache(%ExecutableCache*)
+
+define void @populate_executable_array() {
+entry:
+  %0 = call %ExecutableCache* @create_executable_cache(i32 0)
+  store %ExecutableCache* %0, %ExecutableCache** @executable_cache, align 8
+  ret void
+}
+
+attributes #0 = { nofree nosync nounwind readnone speculatable willreturn }
+attributes #1 = { "EntryPoint" }
+

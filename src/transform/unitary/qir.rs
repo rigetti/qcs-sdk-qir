@@ -12,25 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use eyre::{eyre, ContextCompat, Result};
+use eyre::{eyre, Result};
 use inkwell::{
     basic_block::BasicBlock,
-    values::{AnyValue, FunctionValue, InstructionValue},
+    values::{FunctionValue, InstructionOpcode},
 };
 use log::{debug, info};
 use quil_rs::instruction::Vector;
 
 use crate::interop::{
-    call,
-    entrypoint::get_entry_function,
-    instruction::{
-        get_conditional_branch_else_target, remove_instructions_in_safe_order,
-        replace_conditional_branch_target, replace_phi_clauses,
-    },
+    call, entrypoint::get_entry_function, instruction::remove_instructions_in_safe_order,
 };
 use crate::{context::QCSCompilerContext, transform::PARAMETER_MEMORY_REGION_NAME};
 
-use super::pattern::ShotCountPatternMatchContext;
+use super::pattern::UnitaryPatternMatchContext;
 
 /// Build and insert an LLVM function which performs up-front translation of
 /// all Quil programs used in the module and stores them in an array referred
@@ -121,7 +116,7 @@ pub(crate) fn build_populate_executable_cache_function<'ctx>(
 pub(crate) fn transpile_module(context: &mut QCSCompilerContext) -> Result<()> {
     let entrypoint_function = get_entry_function(&context.module)
         .ok_or_else(|| eyre!("entrypoint not found in module"))?;
-    transpile_function(context, entrypoint_function, &[])?;
+    transpile_function(context, entrypoint_function)?;
     let populate_function = build_populate_executable_cache_function(context)?;
 
     let entry_basic_block = entrypoint_function
@@ -143,10 +138,9 @@ pub(crate) fn transpile_module(context: &mut QCSCompilerContext) -> Result<()> {
 pub(crate) fn transpile_function<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     function: FunctionValue<'ctx>,
-    visited_functions: &[&str],
 ) -> eyre::Result<()> {
     for current_basic_block in function.get_basic_blocks() {
-        transpile_basic_block(context, current_basic_block, visited_functions)?;
+        transpile_basic_block(context, current_basic_block)?;
     }
     Ok(())
 }
@@ -154,14 +148,8 @@ pub(crate) fn transpile_function<'ctx>(
 pub(crate) fn transpile_basic_block<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     basic_block: BasicBlock<'ctx>,
-    visited_functions: &[&str],
 ) -> eyre::Result<()> {
-    let pattern_context = ShotCountPatternMatchContext::from_basic_block(
-        context,
-        basic_block,
-        visited_functions,
-        transpile_function,
-    )?;
+    let pattern_context = UnitaryPatternMatchContext::from_basic_block(context, basic_block)?;
 
     insert_quil_program(context, pattern_context, basic_block)
 }
@@ -174,15 +162,11 @@ pub(crate) fn transpile_basic_block<'ctx>(
 #[allow(clippy::too_many_lines, clippy::unnecessary_wraps)]
 pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
-    pattern_context: ShotCountPatternMatchContext<'p>,
+    pattern_context: UnitaryPatternMatchContext<'p>,
     basic_block: BasicBlock,
 ) -> eyre::Result<()> {
-    if let Some((program, shots)) = pattern_context.get_program_data() {
-        debug!(
-            "inserting quil program with {} shots: {}",
-            shots,
-            program.to_string(true)
-        );
+    if let Some(program) = pattern_context.get_program_data() {
+        debug!("inserting quil program: {}", program.to_string(true));
 
         let mut program = program.clone();
 
@@ -273,8 +257,6 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
             call::executable_from_quil(context, quil_program_global_string.as_pointer_value())?
         };
 
-        call::wrap_in_shots(context, &executable, shots);
-
         for (index, value) in pattern_context.parameters.iter().enumerate() {
             call::set_param(context, &executable, index as u64, *value);
         }
@@ -290,71 +272,42 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
 
         call::panic_on_execution_result_failure(context, &execution_result);
 
-        // After execution we branch into the reduction block, which is everything left over after the
-        // quantum instructions are removed.
-        context.builder.build_unconditional_branch(basic_block);
-
-        // We place our cursor right after the beginning of the loop, which should come before any reduction instructions.
-        context.builder.position_at(
-            basic_block,
-            &pattern_context
-                .initial_instruction
-                .and_then(InstructionValue::get_next_instruction)
-                .ok_or_else(|| eyre!("Expected an initial instruction"))?,
-        );
-
-        let shot_index = pattern_context
-            .initial_instruction
-            .ok_or_else(|| eyre!("Expected an initial instruction"))?
-            .as_any_value_enum()
-            .into_int_value();
-
-        for (readout_index, instruction) in &pattern_context.readout_instruction_mapping {
-            let new_instruction =
-                call::get_readout_bit(context, &execution_result, shot_index, *readout_index)?;
-
-            instruction.replace_all_uses_with(
-                &new_instruction
-                    .as_instruction()
-                    .ok_or_else(|| eyre!("Expected an instruction"))?,
-            );
-        }
-
         let cleanup_basic_block = context.base_context.insert_basic_block_after(
             basic_block,
             format!("{}_cleanup", basic_block.get_name().to_str()?).as_str(),
         );
 
-        // Record which block was originally the target following execution & processing of shots in this block
-        let original_next_block = get_conditional_branch_else_target(
-            basic_block
-                .get_terminator()
-                .ok_or_else(|| eyre!("Expected a terminator"))?,
-        )
-        .wrap_err("expected the basic block to have a conditional 'else' target")?;
+        context.builder.position_at_end(execution_basic_block);
+        context
+            .builder
+            .build_unconditional_branch(cleanup_basic_block);
 
         context.builder.position_at_end(cleanup_basic_block);
         call::free_execution_result(context, &execution_result);
+        context.builder.build_return(None);
+
+        let entry_function = get_entry_function(&context.module)
+            .ok_or_else(|| eyre::eyre!("no entry function found in module"))?;
+
+        let entry_basic_block = entry_function
+            .get_first_basic_block()
+            .ok_or_else(|| eyre::eyre!("no basic block found in entry function"))?;
+
+        let last_entry_block_instruction = entry_basic_block
+            .get_last_instruction()
+            .ok_or_else(|| eyre::eyre!("no instructions in entry basic block"))?;
+
         context
             .builder
-            .build_unconditional_branch(original_next_block);
+            .position_before(&last_entry_block_instruction);
 
-        replace_conditional_branch_target(
-            context,
-            basic_block
-                .get_terminator()
-                .ok_or_else(|| eyre!("Expected a terminator"))?,
-            Some(&basic_block),
-            Some(&cleanup_basic_block),
-        )?;
+        context
+            .builder
+            .build_unconditional_branch(execution_basic_block);
 
-        replace_phi_clauses(
-            context,
-            basic_block,
-            basic_block,
-            execution_basic_block,
-            true,
-        )?;
+        if last_entry_block_instruction.get_opcode() == InstructionOpcode::Return {
+            last_entry_block_instruction.remove_from_basic_block();
+        }
 
         remove_instructions_in_safe_order(pattern_context.instructions_to_remove);
 
@@ -392,9 +345,11 @@ mod test {
                     let _ = env_logger::builder().is_test(true).try_init();
 
                     let base_context = inkwell::context::Context::create();
-                    let data =
-                        std::fs::read(format!("tests/fixtures/programs/{}.bc", stringify!($name)))
-                            .unwrap();
+                    let data = std::fs::read(format!(
+                        "tests/fixtures/programs/unitary/{}.bc",
+                        stringify!($name)
+                    ))
+                    .unwrap();
                     let mut context = QCSCompilerContext::new_from_data(
                         &base_context,
                         &data,
@@ -412,18 +367,9 @@ mod test {
             };
         }
 
-        make_snapshot_test!(shot_count_loop);
-        make_snapshot_test!(measure);
-        make_snapshot_test!(measure_sparse);
-        make_snapshot_test!(parametric);
-        make_snapshot_test!(reduction);
-        make_snapshot_test!(vqe_iteration);
-        make_snapshot_test!(cartesian_rotations);
-        make_snapshot_test!(pauli_xyz);
-        make_snapshot_test!(s_and_adjoint_s);
-        make_snapshot_test!(t_and_adjoint_t);
-        make_snapshot_test!(toffoli);
-        make_snapshot_test!(swap);
+        make_snapshot_test!(bell_state);
         make_snapshot_test!(entrypoint_attribute);
+        make_snapshot_test!(qiskit_qir_measure);
+        make_snapshot_test!(qiskit_qir_allow_unmeasured);
     }
 }

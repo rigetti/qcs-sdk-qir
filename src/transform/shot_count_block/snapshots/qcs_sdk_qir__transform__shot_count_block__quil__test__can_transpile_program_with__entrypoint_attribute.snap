@@ -1,0 +1,24 @@
+---
+source: src/transform/shot_count_block/quil.rs
+expression: result.program.to_string(true)
+---
+DECLARE ro BIT[1]
+RESET
+CNOT 1 0
+CNOT 1 0
+H 0
+H 1
+S 1
+H 1
+CNOT 1 0
+CNOT 1 0
+H 1
+DAGGER S 1
+H 1
+H 0
+H 2
+CZ 2 0
+CZ 2 1
+H 2
+MEASURE 2 ro[0]
+
