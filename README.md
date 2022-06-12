@@ -48,12 +48,35 @@ NO_C_SDK_BUILD=1 NO_QIR_SDK_BUILD=1 NO_HELPER_LIB_BUILD=1 cargo make release-qui
 # NO_HELPER_LIB_BUILD: skips the build of the helper lib (default: 0)
 ```
 
-Refer to the included `README.md` in your own local release build, which will help you test your
-changes if you are looking to transform and compile QIR programs. 
-
 To reset your environment and clean up release build artifacts, run:
 ```sh
 cargo make release-clean
+```
+
+## Testing
+
+Refer to the included `README.md` in your own local release build, which will help you test your
+changes if you are looking to transform and compile QIR programs. 
+
+For a full end-to-end integration test against both `qvm` and QPUs, you can use:
+
+```sh
+cargo make release-test-e2e <TARGET> <PROGRAM>
+# TARGET = one of: qvm, Aspen-11, Aspen-M-1
+# PROGRAM = path to an LLVM bitcode (.bc) file to transform and compile into executable format
+```
+
+```sh
+cargo make release-test-e2e
+# defaults to:
+# cargo make release-test-e2e qvm tests/fixtures/programs/reduction.bc
+# use any of {qvm,Aspen-11,Aspen-M-1}, assuming you can access the QPUs.
+
+# using the default test program
+cargo make release-test-e2e Aspen-11
+
+# using a different test program (note: target must be provided, args are positional)
+cargo make release-test-e2e Aspen-11 ./input.bc 
 ```
 
 ## Examples
