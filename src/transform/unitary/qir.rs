@@ -309,7 +309,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
             last_entry_block_instruction.remove_from_basic_block();
         }
 
-        remove_instructions_in_safe_order(pattern_context.instructions_to_remove);
+        remove_instructions_in_safe_order(pattern_context.instructions_to_remove)?;
 
         info!(
             "transpiled basic block {}",
