@@ -19,13 +19,13 @@ use std::fmt::Display;
 
 use crate::RecordedOutput;
 
-use qcs::ExecutionResult;
+use qcs::RegisterData;
 use thiserror::Error;
 
 /// All errors that may be returned from [`try_format`].
 #[derive(Error, Debug)]
 pub enum Error {
-    /// The [`ExecutionResult`] is a type that is not implemented.
+    /// The [`RegisterData`] is a type that is not implemented.
     #[error("the execution result type `{0}` is unimplemented")]
     UnimplementedResultType(String),
 
@@ -33,32 +33,32 @@ pub enum Error {
     #[error("the record type `{0}` is unimplemented")]
     UnimplementedRecordType(String),
 
-    /// Encountered when `ExecutionResult` data was indexed out-of-range.
-    #[error("No data was available in the `ExecutionResult` for shot ID {0} at index {1}")]
+    /// Encountered when [`RegisterData`] data was indexed out-of-range.
+    #[error("No data was available in the `RegisterData` for shot ID {0} at index {1}")]
     NoShotDataAtIndex(usize, usize),
 }
 
 #[allow(clippy::module_name_repetitions)]
-/// An [`OutputFormat`] describes the behavior required to translate QCS [`ExecutionResult`] values
+/// An [`OutputFormat`] describes the behavior required to translate QCS [`RegisterData`] values
 /// into an environment-specific output format.
 pub trait OutputFormat: Display {
-    /// While some [`RecordedOutput`] and [`ExecutionResult`] variants may be unimplemented for
+    /// While some [`RecordedOutput`] and [`RegisterData`] variants may be unimplemented for
     /// various output formats, this provides an interface that can fail. Once all variants can be
     /// implemented, a `new` function can be added and this deprecated.
     ///
     /// # Errors
     ///
     /// See [`enum@Error`].
-    fn try_new(result: &ExecutionResult, mapping: &[RecordedOutput]) -> Result<Self, Error>
+    fn try_new(result: &RegisterData, mapping: &[RecordedOutput]) -> Result<Self, Error>
     where
         Self: Sized;
 }
 
 /// A generic function over `F`: [`OutputFormat`], which attempts to format program output based on
-/// the `&ExecutionResult` and `&[RecordedOutput]` provided. Caller must specify the concrete
+/// the `&RegisterData` and `&[RecordedOutput]` provided. Caller must specify the concrete
 /// implementation of the `OutputFormat`, e.g. using `DebugOutputFormat` in this crate.
 ///
-/// While some [`RecordedOutput`] and [`ExecutionResult`] variants may be unimplemented for various
+/// While some [`RecordedOutput`] and [`RegisterData`] variants may be unimplemented for various
 /// output formats, this provides an interface that can fail. Once all variants can be
 /// impelemented, a `format` function can be added and this deprecated.
 ///
@@ -68,13 +68,13 @@ pub trait OutputFormat: Display {
 ///
 /// ```
 /// pub use qcs_sdk_qir::output::{try_format, DebugOutputFormat, Error};
-/// use qcs::ExecutionResult;
+/// use qcs::RegisterData;
 /// use qcs_sdk_qir::RecordedOutput;
 ///
 /// fn format_output() -> Result<String, Error> {
 ///     // in practice, `result` and `mapping` would be provided to you from other QCS SDK
 ///     // function calls, not constructed manually as done here for demonstration purposes.
-///     let result = &ExecutionResult::I8(vec![vec![1]]);
+///     let result = &RegisterData::I8(vec![vec![1]]);
 ///     let mapping: &[RecordedOutput] = &[
 ///         RecordedOutput::ShotStart, RecordedOutput::ResultReadoutOffset(0), RecordedOutput::ShotEnd
 ///     ];
@@ -84,7 +84,7 @@ pub trait OutputFormat: Display {
 ///     Ok(output)
 /// }
 /// ```
-pub fn try_format<F>(result: &ExecutionResult, mapping: &[RecordedOutput]) -> Result<String, Error>
+pub fn try_format<F>(result: &RegisterData, mapping: &[RecordedOutput]) -> Result<String, Error>
 where
     F: OutputFormat,
 {

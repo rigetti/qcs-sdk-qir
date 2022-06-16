@@ -15,7 +15,7 @@
 use super::{Error, OutputFormat};
 use crate::RecordedOutput;
 
-use qcs::ExecutionResult;
+use qcs::RegisterData;
 
 /// Formats output of QIR programs in a debug-friendly structure.
 #[allow(clippy::module_name_repetitions)]
@@ -24,7 +24,7 @@ pub struct DebugOutputFormat(pub Vec<String>);
 
 impl OutputFormat for DebugOutputFormat {
     /// Create an [`DebugOutputFormat`].
-    /// Will return [`enum@Error`] if something about the [`ExecutionResult`] or [`RecordedOutput`] is
+    /// Will return [`enum@Error`] if something about the [`RegisterData`] or [`RecordedOutput`] is
     /// unsupported, or if any of the result's data is indexed out-of-range.
     ///
     /// # Arguments
@@ -35,10 +35,10 @@ impl OutputFormat for DebugOutputFormat {
     /// # Errors
     ///
     /// See [`enum@Error`].
-    fn try_new(result: &ExecutionResult, mapping: &[RecordedOutput]) -> Result<Self, Error> {
+    fn try_new(result: &RegisterData, mapping: &[RecordedOutput]) -> Result<Self, Error> {
         let mut output = vec![];
         match result {
-            ExecutionResult::I8(shots_results) => {
+            RegisterData::I8(shots_results) => {
                 for (shot_idx, shot) in shots_results.iter().enumerate() {
                     for recorded_output in mapping {
                         let shot_id = shot_idx + 1;
@@ -84,9 +84,7 @@ impl OutputFormat for DebugOutputFormat {
                 }
                 Ok(Self(output))
             }
-            ExecutionResult::Complex32(..)
-            | ExecutionResult::F64(..)
-            | ExecutionResult::I16(..) => {
+            RegisterData::Complex32(..) | RegisterData::F64(..) | RegisterData::I16(..) => {
                 Err(Error::UnimplementedResultType(format!("{:?}", result)))
             }
         }
@@ -102,7 +100,7 @@ impl std::fmt::Display for DebugOutputFormat {
 #[test]
 fn test_execution_result_debug_output() {
     let execution_result =
-        ExecutionResult::I8(vec![vec![1, 2, 3], vec![10, 20, 30], vec![11, 22, 33]]);
+        RegisterData::I8(vec![vec![1, 2, 3], vec![10, 20, 30], vec![11, 22, 33]]);
     let mapping = [
         RecordedOutput::ShotStart,
         RecordedOutput::ResultReadoutOffset(0),
@@ -141,7 +139,7 @@ fn test_execution_result_debug_output() {
 #[test]
 fn test_out_of_range_debug_output() {
     // use misaligned result data with mapping data to trigger `NoShotDataAtIndex` error
-    let execution_result = ExecutionResult::I8(vec![vec![1, 2, 3], vec![10, 20]]);
+    let execution_result = RegisterData::I8(vec![vec![1, 2, 3], vec![10, 20]]);
     let mapping = [
         RecordedOutput::ShotStart,
         RecordedOutput::ResultReadoutOffset(0),
