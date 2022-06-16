@@ -314,14 +314,15 @@ pub(crate) fn replace_phi_clauses(
 }
 
 /// Remove instructions in topological order such that none is removed while any other instruction uses it.
-/// Note that this will panic if there is a cycle in the use graph or
-pub(crate) fn remove_instructions_in_safe_order(instructions: Vec<InstructionValue>) {
+pub(crate) fn remove_instructions_in_safe_order(instructions: Vec<InstructionValue>) -> Result<()> {
     let mut instructions = instructions;
 
     loop {
         let mut instructions_removed_in_round = false;
 
         instructions.retain(|instr| {
+            // if an instruction is still in use at current iteration, mark it to be kept until other
+            // instructions are removed (which may be dependent on this instruction)
             if instr.get_first_use().is_some() {
                 true
             } else {
@@ -331,13 +332,14 @@ pub(crate) fn remove_instructions_in_safe_order(instructions: Vec<InstructionVal
             }
         });
 
+        // no more instructions to remove, bail
         if instructions.is_empty() {
-            return;
+            return Ok(());
         }
 
-        assert!(
-            instructions_removed_in_round,
-            "Unable to remove remaining instructions safely"
-        );
+        // still have instructions to remove, but all were still in use and cannot be removed
+        if !instructions_removed_in_round {
+            return Err(eyre!("Unable to remove remaining instructions safely"));
+        }
     }
 }
