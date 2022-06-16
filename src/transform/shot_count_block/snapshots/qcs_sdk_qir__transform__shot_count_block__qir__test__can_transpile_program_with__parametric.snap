@@ -12,7 +12,7 @@ source_filename = "./tests/fixtures/programs/parametric.ll"
 
 @executable_cache = private global %ExecutableCache* null
 @parameter_memory_region_name = private unnamed_addr constant [12 x i8] c"__qir_param\00", align 1
-@quil_program = private unnamed_addr constant [118 x i8] c"DECLARE __qir_param REAL[1]\0ADECLARE ro BIT[0]\0ARZ(__qir_param[0]) 0\0ARZ(__qir_param[0]) 0\0ARZ(2.0) 0\0ARZ(12.123456789) 0\0A\00", align 1
+@quil_program = private unnamed_addr constant [116 x i8] c"DECLARE __qir_param REAL[1]\0ADECLARE ro BIT[0]\0ARZ(__qir_param[0]) 0\0ARZ(__qir_param[0]) 0\0ARZ(2) 0\0ARZ(12.123456789) 0\0A\00", align 1
 
 declare void @__quantum__qis__rz__body(double, %Qubit*) local_unnamed_addr
 
@@ -33,7 +33,7 @@ body_cleanup:                                     ; preds = %body
   br label %exit
 
 body_execution:                                   ; preds = %entry, <null operand!>
-  %4 = call %Executable* @executable_from_quil(i8* getelementptr inbounds ([118 x i8], [118 x i8]* @quil_program, i32 0, i32 0))
+  %4 = call %Executable* @executable_from_quil(i8* getelementptr inbounds ([116 x i8], [116 x i8]* @quil_program, i32 0, i32 0))
   call void @wrap_in_shots(%Executable* %4, i32 1000)
   call void @set_param(%Executable* %4, i8* getelementptr inbounds ([12 x i8], [12 x i8]* @parameter_memory_region_name, i32 0, i32 0), i32 0, double %0)
   %5 = call %ExecutionResult* @execute_on_qvm(%Executable* %4)

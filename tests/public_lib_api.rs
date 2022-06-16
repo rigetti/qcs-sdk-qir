@@ -1,6 +1,6 @@
 use std::fs::read;
 
-use qcs::ExecutionResult;
+use qcs::RegisterData;
 use qcs_sdk_qir::{
     output::{self, DebugOutputFormat},
     transpile_qir_to_quil,
@@ -21,7 +21,7 @@ fn capture_recorded_output_and_convert() {
     insta::assert_json_snapshot!(&output.recorded_output);
 
     let debug_format = output::try_format::<DebugOutputFormat>(
-        &ExecutionResult::I8(vec![vec![1, 2], vec![2, 4], vec![3, 6]]),
+        &RegisterData::I8(vec![vec![1, 2], vec![2, 4], vec![3, 6]]),
         &output.recorded_output,
     )
     .unwrap();

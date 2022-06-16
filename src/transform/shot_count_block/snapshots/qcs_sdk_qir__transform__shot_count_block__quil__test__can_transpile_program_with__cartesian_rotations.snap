@@ -3,7 +3,7 @@ source: src/transform/shot_count_block/quil.rs
 expression: result.program.to_string(true)
 ---
 DECLARE ro BIT[0]
-RX(2.0) 0
-RY(2.0) 0
-RZ(2.0) 0
+RX(2) 0
+RY(2) 0
+RZ(2) 0
 
