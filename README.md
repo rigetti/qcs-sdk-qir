@@ -62,7 +62,7 @@ For a full end-to-end integration test against both `qvm` and QPUs, you can use:
 
 ```sh
 cargo make release-test-e2e <TARGET> <PROGRAM>
-# TARGET = one of: qvm, Aspen-11, Aspen-M-1
+# TARGET = one of: qvm, Aspen-11
 # PROGRAM = path to an LLVM bitcode (.bc) file to transform and compile into executable format
 ```
 
@@ -70,7 +70,7 @@ cargo make release-test-e2e <TARGET> <PROGRAM>
 cargo make release-test-e2e
 # defaults to:
 # cargo make release-test-e2e qvm tests/fixtures/programs/reduction.bc
-# use any of {qvm,Aspen-11,Aspen-M-1}, assuming you can access the QPUs.
+# use any of {qvm,Aspen-11}, assuming you can access the QPUs.
 
 # using the default test program
 cargo make release-test-e2e Aspen-11

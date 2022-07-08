@@ -27,11 +27,11 @@ fi
 
 # validate target is an actual option
 case $TEST_TARGET in 
-    "Aspen-11"|"Aspen-M-1"|"qvm")
+    "Aspen-11"|"qvm")
     ;;
 
     *)
-        echo "Invalid target '${TEST_TARGET}'. Use one of 'Aspen-11', 'Aspen-M-1', or 'qvm' (default)."
+        echo "Invalid target '${TEST_TARGET}'. Use one of 'Aspen-11' or 'qvm' (default)."
         exit 1
     ;;
 esac
@@ -39,7 +39,7 @@ esac
 echo "Targeting: '${TEST_TARGET}'..."
 
 case $TEST_TARGET in 
-    "Aspen-11"|"Aspen-M-1")
+    "Aspen-11")
         echo "Ensure your networking configuration allows connectivity to QPUs."
     ;;
 esac
