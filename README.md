@@ -10,6 +10,17 @@ Within the release, you will find a `README.md` pertaining to the specific versi
 based on [this template](./scripts/release/README.release.md). Those instructions cover the basics
 to compile an executable that can run quantum programs on Rigetti QPUs or the QVM.
 
+## Overview
+
+```mermaid
+graph TD
+    A[Take QIR Input 'input.bc'] --> B[Determine format: 'shot-count' OR 'unitary'] --> C[Choose Output Type]
+    C -->|Binary Executable?| D[transform]
+    C -->|Quil?| E[transpile-to-quil]
+    D -->|generates: Rigetti-targeted 'output.bc'| F[clang w/ QCS SDK + libhelper] -->G[./program]
+    E -->|generates: shot-count, Quil program string, output recording map| H[submit job to QCS API]
+```
+
 ## Development
 
 In order to build this crate, a supported LLVM version must be installed and available on your `PATH` 
