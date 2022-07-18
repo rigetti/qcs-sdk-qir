@@ -16,7 +16,10 @@
 // into quil, substituting those instructions with inline calls to a shared library responsible for
 // executing those quil instructions.
 use eyre::{eyre, Result};
+
+#[allow(unused)]
 use inkwell::types::AnyType;
+
 use inkwell::{basic_block::BasicBlock, values::FunctionValue};
 use quil_rs::instruction::Vector;
 
