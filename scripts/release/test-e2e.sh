@@ -44,10 +44,6 @@ case $TEST_TARGET in
     ;;
 esac
 
-echo "Transforming: '${TEST_INPUT}' -> '${DIST_DIR}/output.bc'"
-echo "Compiling: '${DIST_DIR}/program'"
-
-
 # transform and compile the program, then run against specified target
 case $OS in
     "darwin"|"linux")
@@ -60,8 +56,11 @@ case $OS in
         fi
                 
         pushd $DIST_DIR
+        echo "Transforming: '${TEST_INPUT}' -> '${DIST_DIR}/output.bc'"
         ./qcs-sdk-qir transform --add-main-entrypoint --target $TEST_TARGET $TEST_INPUT output.bc
+        echo "Compiling: '${DIST_DIR}/program'"
         clang -Llib -lqcs -Llib -lhelper output.bc -o program
+        echo "Executing: '${DIST_DIR}/program'"
         ./program
         popd
         
