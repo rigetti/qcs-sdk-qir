@@ -1,6 +1,6 @@
 [env]
 RUST_BACKTRACE = 0
-LLVM_FEATURE = { value = "llvm13-0", condition = { env_not_set = [
+LLVM_FEATURE = { value = "llvm14-0", condition = { env_not_set = [
     "LLVM_FEATURE",
 ] } }
 PROFILE = { value = "dev", condition = { env_not_set = ["PROFILE"] } }

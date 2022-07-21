@@ -3,7 +3,7 @@ set -xeo pipefail
 
 # set defaults for dynamic CI variables when local/testing
 C_SDK_VERSION="${C_SDK_VERSION:-v0.1.1}"
-LLVM_VERSION="${LLVM_VERSION:-13}"
+LLVM_VERSION="${LLVM_VERSION:-14}"
 LLVM_FULL_VERSION="${LLVM_FULL_VERSION:-0.1}"
 TESTING_TAG="${TESTING_TAG:-v0.0.0-local}"
 TAG=${TAG:-$TESTING_TAG}

@@ -13,7 +13,7 @@ jobs:
         os: [macos-latest, ubuntu-latest]
         rust:
           - stable
-        llvm_version: [12, 13]
+        llvm_version: [12, 13, 14]
     env:
       C_SDK_VERSION: v0.1.1
       LLVM_VERSION: ${{ matrix.llvm_version }}

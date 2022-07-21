@@ -29,12 +29,15 @@ In order to build this crate, a supported LLVM version must be installed and ava
 
 To build the CLI: 
 ```sh
-cargo build --bin qcs-sdk-qir --features llvm13-0
+cargo build --bin qcs-sdk-qir
+
+# or, to specify the version of LLVM to build with:
+cargo build --bin qcs-sdk-qir --features llvm14-0 # defaults to LLVM 14, or any of llvm{12,13,14}-0 
 ```
 
 To run the unit and snapshot tests: 
 ```sh
-cargo test --features llvm13-0
+cargo test
 ```
 
 To test your changes alongside the shared libraries, it might be helpful to reuse the release 
@@ -237,13 +240,13 @@ To transpile an input QIR program, run the CLI. Note that you **must specify you
 corresponding with your installed version or this will fail with dozens of errors**:
 
 ```
-cargo run --features llvm13-0 transform path/to/input.bc path/to/output.bc --add-main-entrypoint
+cargo run transform path/to/input.bc path/to/output.bc --add-main-entrypoint
 ```
 
 Use the `--help` flag to view all options, such as whether to target the QVM or a QPU:
 
 ```
-cargo run --features llvm13-0 transform --help
+cargo run transform --help
 ```
 
 ### QIR Preconditions
@@ -283,7 +286,7 @@ To transpile an input QIR program to Quil, run the CLI as shown here, following 
 - The `body` basic block satisfies the _basic block preconditions_ described above in [QIR Preconditions](#qir-preconditions).
 
 ```
-cargo run --features llvm13-0 transpile-to-quil path/to/input.bc
+cargo run transpile-to-quil path/to/input.bc
 ```
 
 This will write the Quil program and shot count to `stdout`.
@@ -323,7 +326,7 @@ error: No suitable version of LLVM was found system-wide or pointed
 
 First, make sure you do in fact have the same LLVM version installed and on your `PATH` as you've 
 specified with the `--features` option in `cargo`. Run `llvm-config --version` to confirm. If not, 
-that needs fixing first.
+that needs fixing first. By default, `qcs-sdk-qir` will build with LLVM 14.
 
 If you do, perhaps you first tried to build the crate before LLVM was installed and configured. Run 
 `cargo clean -p llvm-sys` to clear the build and then retry.
