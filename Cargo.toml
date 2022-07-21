@@ -37,9 +37,10 @@ trycmd = "0.13.3"
 [features]
 cli = ["clap"]
 output = ["qcs"]   # Enables the `output` module
-default = ["serde_support", "cli", "output"]
+default = ["serde_support", "cli", "output", "llvm14-0"]
 llvm12-0 = ["inkwell/llvm12-0"]
 llvm13-0 = ["inkwell/llvm13-0"]
+llvm14-0 = ["inkwell/llvm14-0"]
 serde_support = ["serde", "serde_json"]
 
 [[bin]]
