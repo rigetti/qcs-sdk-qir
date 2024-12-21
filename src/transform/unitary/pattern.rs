@@ -125,7 +125,7 @@ impl<'ctx> UnitaryPatternMatchContext<'ctx> {
     /// If the program contains any executable instructions (gates, pulses, etc) return that
     /// information; otherwise, return `None` indicating that the pattern was not matched.
     pub(crate) fn get_program_data(&self) -> Option<&quil_rs::Program> {
-        if self.quil_program.to_instructions(false).is_empty() {
+        if self.quil_program.body_instructions().next().is_none() {
             None
         } else {
             Some(&self.quil_program)

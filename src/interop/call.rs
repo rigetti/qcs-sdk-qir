@@ -54,7 +54,7 @@ pub(crate) fn executable_from_quil<'ctx>(
             quil.const_cast(string_type),
         )],
         "",
-    );
+    )?;
     Ok(Executable(
         executable_call_site_value
             .try_as_basic_value()
@@ -81,7 +81,7 @@ pub(crate) fn execute_on_qpu<'ctx>(
                 .into(),
         ],
         "",
-    );
+    )?;
 
     Ok(ExecutionResult(
         execution_result
@@ -100,7 +100,7 @@ pub(crate) fn execute_on_qvm<'ctx>(
         context.values.execute_on_qvm_function(),
         &[executable.0.into()],
         "",
-    );
+    )?;
 
     Ok(ExecutionResult(
         execution_result
@@ -141,13 +141,13 @@ pub(crate) fn get_executable<'ctx>(
 ) -> Result<Executable<'ctx>> {
     let cache_pointer = context
         .builder
-        .build_load(context.values.executable_cache().as_pointer_value(), "");
+        .build_load(context.values.executable_cache().as_pointer_value(), "")?;
 
     let call_site_value = context.builder.build_call(
         context.values.read_from_executable_cache(),
         &[cache_pointer.into(), index.into()],
         "",
-    );
+    )?;
 
     Ok(Executable(
         call_site_value
@@ -163,12 +163,13 @@ pub(crate) fn get_executable<'ctx>(
 pub(crate) fn panic_on_execution_result_failure<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     execution_result: &ExecutionResult<'ctx>,
-) {
+) -> Result<()> {
     context.builder.build_call(
         context.values.panic_on_failure_function(),
         &[execution_result.0.into()],
         "",
-    );
+    )?;
+    Ok(())
 }
 
 pub(crate) fn get_readout_bit<'ctx>(
@@ -189,7 +190,7 @@ pub(crate) fn get_readout_bit<'ctx>(
                 .into(),
         ],
         "",
-    );
+    )?;
 
     Ok(result
         .try_as_basic_value()
@@ -203,21 +204,25 @@ pub(crate) fn set_param<'ctx>(
     executable: &Executable<'ctx>,
     index: u64,
     value: FloatValue<'ctx>,
-) {
-    context.builder.build_call(
-        context.values.set_param_function(),
-        &[
-            BasicMetadataValueEnum::PointerValue(executable.0),
-            context.values.parameter_memory_region_name().into(),
-            context
-                .base_context
-                .i32_type()
-                .const_int(index, false)
-                .into(),
-            value.into(),
-        ],
-        "",
-    );
+) -> Result<()> {
+    context
+        .builder
+        .build_call(
+            context.values.set_param_function(),
+            &[
+                BasicMetadataValueEnum::PointerValue(executable.0),
+                context.values.parameter_memory_region_name().into(),
+                context
+                    .base_context
+                    .i32_type()
+                    .const_int(index, false)
+                    .into(),
+                value.into(),
+            ],
+            "",
+        )
+        .map(|_| ())
+        .map_err(eyre::Report::from)
 }
 
 pub(crate) fn wrap_in_shots<'ctx>(

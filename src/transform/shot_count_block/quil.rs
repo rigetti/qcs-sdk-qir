@@ -17,8 +17,9 @@
 // executing those quil instructions.
 use eyre::{eyre, Result};
 use inkwell::{basic_block::BasicBlock, values::FunctionValue};
-use quil_rs::instruction::Vector;
+use quil_rs::instruction::{PragmaArgument, Vector};
 
+use quil_rs::quil::Quil;
 #[cfg(feature = "serde_support")]
 use serde::{ser::SerializeStruct, Serialize, Serializer};
 
@@ -44,8 +45,12 @@ impl Serialize for ProgramOutput {
     where
         S: Serializer,
     {
+        use serde::ser::Error;
         let mut output = serializer.serialize_struct("ProgramOutput", 3)?;
-        output.serialize_field("program", &self.program.to_string(true))?;
+        output.serialize_field(
+            "program",
+            &self.program.to_quil().map_err(S::Error::custom)?,
+        )?;
         output.serialize_field("shot_count", &self.shot_count)?;
         output.serialize_field("recorded_output", &self.recorded_output)?;
         output.end()
@@ -145,7 +150,7 @@ pub(crate) fn build_quil_program<'ctx, 'p: 'ctx>(
 
         if pattern_context.use_active_reset {
             // Prepend a reset to the program via copy
-            let instructions = program.to_instructions(true);
+            let instructions = program.to_instructions();
             let mut new_program = quil_rs::program::Program::new();
             new_program.add_instruction(quil_rs::instruction::Instruction::Reset(
                 quil_rs::instruction::Reset { qubit: None },
@@ -158,12 +163,12 @@ pub(crate) fn build_quil_program<'ctx, 'p: 'ctx>(
 
         if let Some(rewiring_pragma) = &context.options.rewiring_pragma {
             // Prepend a pragma to the program via copy
-            let instructions = program.to_instructions(true);
+            let instructions = program.to_instructions();
             let mut new_program = quil_rs::program::Program::new();
             new_program.add_instruction(quil_rs::instruction::Instruction::Pragma(
                 quil_rs::instruction::Pragma {
                     name: String::from("INITIAL_REWIRING"),
-                    arguments: vec![format!("\"{}\"", rewiring_pragma.clone())],
+                    arguments: vec![PragmaArgument::Identifier(rewiring_pragma.clone())],
                     data: None,
                 },
             ));

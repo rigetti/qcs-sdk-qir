@@ -37,7 +37,6 @@ enum QcsQirCli {
 
         llvm_bitcode_path: PathBuf,
 
-        #[clap(parse(from_os_str))]
         bitcode_out: Option<PathBuf>,
 
         #[clap(long)]
@@ -69,7 +68,7 @@ enum QcsQirCli {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 enum QirFormat {
     ShotCount,
     Unitary,

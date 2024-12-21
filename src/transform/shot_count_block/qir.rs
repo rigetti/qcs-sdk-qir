@@ -18,7 +18,10 @@ use inkwell::{
     values::{AnyValue, FunctionValue, InstructionValue},
 };
 use log::{debug, info};
-use quil_rs::instruction::Vector;
+use quil_rs::{
+    instruction::{PragmaArgument, Vector},
+    quil::Quil,
+};
 
 use crate::interop::{
     call,
@@ -69,7 +72,7 @@ pub(crate) fn build_populate_executable_cache_function<'ctx>(
                     .const_int(context.quil_programs.len() as u64, false)
                     .into()],
                 "",
-            )
+            )?
             .try_as_basic_value()
             .left()
             .ok_or_else(|| eyre!("create_executable_cache does not have a return value"))?
@@ -81,14 +84,14 @@ pub(crate) fn build_populate_executable_cache_function<'ctx>(
         );
 
         for index in 0..context.quil_programs.len() {
-            let program_text = context.quil_programs[index].to_string(true);
+            let program_text = context.quil_programs[index].to_quil()?;
 
             let quil_program_global_string = unsafe {
                 // NOTE: this segfaults if the builder is not already positioned within a basic block
                 // see https://github.com/TheDan64/inkwell/issues/32
                 context
                     .builder
-                    .build_global_string(&program_text, "quil_program")
+                    .build_global_string(&program_text, "quil_program")?
             };
 
             context.builder.build_call(
@@ -181,7 +184,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
         debug!(
             "inserting quil program with {} shots: {}",
             shots,
-            program.to_string(true)
+            program.to_quil_or_debug()
         );
 
         let mut program = program.clone();
@@ -212,7 +215,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
 
         if pattern_context.use_active_reset {
             // Prepend a reset to the program via copy
-            let instructions = program.to_instructions(true);
+            let instructions = program.to_instructions();
             let mut new_program = quil_rs::program::Program::new();
             new_program.add_instruction(quil_rs::instruction::Instruction::Reset(
                 quil_rs::instruction::Reset { qubit: None },
@@ -225,12 +228,12 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
 
         if let Some(rewiring_pragma) = &context.options.rewiring_pragma {
             // Prepend a pragma to the program via copy
-            let instructions = program.to_instructions(true);
+            let instructions = program.to_instructions();
             let mut new_program = quil_rs::program::Program::new();
             new_program.add_instruction(quil_rs::instruction::Instruction::Pragma(
                 quil_rs::instruction::Pragma {
                     name: String::from("INITIAL_REWIRING"),
-                    arguments: vec![format!("\"{}\"", rewiring_pragma.clone())],
+                    arguments: vec![PragmaArgument::Identifier(rewiring_pragma.clone())],
                     data: None,
                 },
             ));
@@ -260,13 +263,13 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
                     .const_int(quil_program_index as u64, false),
             )?
         } else {
-            let program_text = program.to_string(true);
+            let program_text = program.to_quil()?;
             let quil_program_global_string = unsafe {
                 // NOTE: this segfaults if the builder is not already positioned within a basic block
                 // see https://github.com/TheDan64/inkwell/issues/32
                 context
                     .builder
-                    .build_global_string(&program_text, "quil_program")
+                    .build_global_string(&program_text, "quil_program")?
             };
 
             // Insert the shared library calls to send this program for execution

@@ -110,7 +110,7 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
     /// return that information; otherwise, return `None` indicating that the pattern was not matched.
     pub(crate) fn get_program_data(&self) -> Option<(&quil_rs::Program, u64)> {
         if let Some(shots) = self.shot_count {
-            if self.quil_program.to_instructions(false).is_empty() {
+            if self.quil_program.body_instructions().next().is_none() {
                 None
             } else {
                 Some((&self.quil_program, shots))
