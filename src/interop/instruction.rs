@@ -19,7 +19,7 @@ use either::Either;
 use eyre::{eyre, Result, WrapErr};
 use inkwell::{
     basic_block::BasicBlock,
-    types::AnyTypeEnum,
+    types::{AnyType, AnyTypeEnum},
     values::{
         BasicValue, BasicValueEnum, FloatValue, InstructionOpcode, InstructionValue, IntValue,
         PhiValue, PointerValue,
@@ -69,7 +69,7 @@ pub(crate) fn get_qis_function_arguments<'ctx>(
                 .ok_or_else(|| eyre!("expected a first operand in Call instruction"))?;
             if let Either::Left(BasicValueEnum::PointerValue(ptr_value)) = target {
                 if let AnyTypeEnum::StructType(struct_type) =
-                    ptr_value.get_type().get_element_type()
+                    ptr_value.get_type().as_any_type_enum()
                 {
                     let type_name = struct_type
                         .get_name()

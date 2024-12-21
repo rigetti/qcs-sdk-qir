@@ -5,13 +5,14 @@ use qcs_sdk_qir::{
     output::{self, DebugOutputFormat},
     transpile_qir_to_quil,
 };
+use quil_rs::quil::Quil;
 
 #[test]
 fn transpile_qir_to_quil_bell_state() {
     let data = read("tests/fixtures/programs/bell_state.bc").unwrap();
     let output = transpile_qir_to_quil(&data).unwrap();
-    insta::assert_snapshot!(output.program.to_string(true));
-    insta::assert_display_snapshot!(output.shot_count);
+    insta::assert_snapshot!(output.program.to_quil_or_debug());
+    insta::assert_snapshot!(output.shot_count);
 }
 
 #[test]

@@ -1,9 +1,9 @@
 [env]
 RUST_BACKTRACE = 0
-LLVM_FEATURE = { value = "llvm13-0", condition = { env_not_set = [
+LLVM_FEATURE = { value = "llvm16-0", condition = { env_not_set = [
     "LLVM_FEATURE",
 ] } }
-LLVM_SYS_130_PREFIX = { value = "/opt/homebrew/opt/llvm@13", condition = { platforms = ["mac"] } }
+LLVM_SYS_160_PREFIX = { value = "/opt/homebrew/opt/llvm@16", condition = { platforms = ["mac"] } }
 PROFILE = { value = "dev", condition = { env_not_set = ["PROFILE"] } }
 NO_C_SDK_BUILD = { value = "0", condition = { env_not_set = [
     "NO_C_SDK_BUILD",

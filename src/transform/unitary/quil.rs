@@ -102,6 +102,7 @@ pub(crate) fn transpile_function<'ctx>(
 #[test]
 fn validates_unitary_ret_void() {
     use crate::transform::unitary::quil::transpile_module;
+    use crate::context::context::ContextOptions;
 
     let context = inkwell::context::Context::create();
     let path = "tests/fixtures/programs/unitary/non_void_terminator.bc";
@@ -110,7 +111,7 @@ fn validates_unitary_ret_void() {
         &context,
         &data,
         crate::ExecutionTarget::Qvm,
-        Default::default(),
+        ContextOptions::default(),
     )
     .unwrap();
 
@@ -123,7 +124,7 @@ fn validates_unitary_ret_void() {
         &context,
         &data,
         crate::ExecutionTarget::Qvm,
-        Default::default(),
+        ContextOptions::default(),
     )
     .unwrap();
 
@@ -243,7 +244,7 @@ mod test {
                     .unwrap();
                     let result = transpile_module(&mut context).expect("transpilation failed");
 
-                    insta::assert_snapshot!(result.program.to_string(true));
+                    insta::assert_snapshot!(result.program.to_quil_or_debug());
                 }
             };
         }

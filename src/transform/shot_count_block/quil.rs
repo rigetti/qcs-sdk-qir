@@ -221,7 +221,7 @@ mod test {
                     .unwrap();
                     let result = transpile_module(&mut context).expect("transpilation failed");
 
-                    insta::assert_snapshot!(result.program.to_string(true));
+                    insta::assert_snapshot!(result.program.to_quil_or_debug());
                 }
             };
         }

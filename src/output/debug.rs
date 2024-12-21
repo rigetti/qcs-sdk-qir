@@ -98,20 +98,7 @@ impl std::fmt::Display for DebugOutputFormat {
 
 #[test]
 fn test_execution_result_debug_output() {
-    let execution_result =
-        RegisterData::I8(vec![vec![1, 2, 3], vec![10, 20, 30], vec![11, 22, 33]]);
-    let mapping = [
-        RecordedOutput::ShotStart,
-        RecordedOutput::ResultReadoutOffset(0),
-        RecordedOutput::ResultReadoutOffset(1),
-        RecordedOutput::ResultReadoutOffset(2),
-        RecordedOutput::ShotEnd,
-    ];
-
-    let output = DebugOutputFormat::try_new(&execution_result, &mapping).unwrap();
-    assert_eq!(output.0.len(), 15);
-
-    const EXPECTED_OUTPUT: &str = r#"
+    const EXPECTED_OUTPUT: &str = r"
 [shot:1 start]
 [shot:1 result 1]
 [shot:1 result 2]
@@ -127,12 +114,25 @@ fn test_execution_result_debug_output() {
 [shot:3 result 22]
 [shot:3 result 33]
 [shot:3 end]
-"#;
+";
+
+    let execution_result =
+        RegisterData::I8(vec![vec![1, 2, 3], vec![10, 20, 30], vec![11, 22, 33]]);
+    let mapping = [
+        RecordedOutput::ShotStart,
+        RecordedOutput::ResultReadoutOffset(0),
+        RecordedOutput::ResultReadoutOffset(1),
+        RecordedOutput::ResultReadoutOffset(2),
+        RecordedOutput::ShotEnd,
+    ];
+
+    let output = DebugOutputFormat::try_new(&execution_result, &mapping).unwrap();
+    assert_eq!(output.0.len(), 15);
 
     assert_eq!(
         super::try_format::<DebugOutputFormat>(&execution_result, &mapping).unwrap(),
         EXPECTED_OUTPUT.trim()
-    )
+    );
 }
 
 #[test]
@@ -150,8 +150,8 @@ fn test_out_of_range_debug_output() {
     let try_output = DebugOutputFormat::try_new(&execution_result, &mapping);
     if let Some(Error::NoShotDataAtIndex(shot_id, index)) = try_output.err() {
         assert_eq!(shot_id, 2);
-        assert_eq!(index, 2)
+        assert_eq!(index, 2);
     } else {
-        assert!(false);
+        panic!();
     }
 }

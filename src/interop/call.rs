@@ -144,7 +144,7 @@ pub(crate) fn get_executable<'ctx>(
 ) -> Result<Executable<'ctx>> {
     let cache_pointer = context
         .builder
-        .build_load(context.values.executable_cache().as_pointer_value(), "")?;
+        .build_load(index.get_type(), context.values.executable_cache().as_pointer_value(), "")?;
 
     let call_site_value = context.builder.build_call(
         context.values.read_from_executable_cache(),
