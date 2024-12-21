@@ -26,8 +26,6 @@ qcs = { version = "0.25.6", optional = true }
 
 [dependencies.inkwell]
 version = "0.5.0"
-#git = "https://github.com/TheDan64/inkwell"
-#branch = "master"
 features = ["target-x86"]
 
 [dev-dependencies]
@@ -36,8 +34,8 @@ trycmd = "0.15.8"
 
 [features]
 cli = ["clap"]
-output = ["qcs"]                                         # Enables the `output` module
-default = ["serde_support", "cli", "output", "llvm13-0"]
+output = ["qcs"]                             # Enables the `output` module
+default = ["serde_support", "cli", "output"]
 llvm12-0 = ["inkwell/llvm12-0"]
 llvm13-0 = ["inkwell/llvm13-0"]
 serde_support = ["serde", "serde_json"]
