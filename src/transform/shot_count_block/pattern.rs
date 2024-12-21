@@ -87,11 +87,11 @@ pub(crate) struct ShotCountPatternMatchContext<'ctx> {
     /// A list of instructions to remove from the program (for substitution with Quil)
     pub(crate) instructions_to_remove: Vec<InstructionValue<'ctx>>,
 
-    /// The terminating instruction to append to the BasicBlock in place of a conditional
+    /// The terminating instruction to append to the `BasicBlock` in place of a conditional
     /// branch on shot count
     pub(crate) next_basic_block: Option<BasicBlock<'ctx>>,
 
-    /// Mapping of (read_result *Result index)->(ro memory region index)
+    /// Mapping of `(read_result *Result index)->(ro memory region index)`
     pub(crate) read_result_mapping: HashMap<u64, u64>,
 
     /// Pairings of (readout buffer index/offset) with the instruction which stores that readout value.
@@ -152,7 +152,7 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
             if pattern_context.initial_instruction.is_none() {
                 // Check if we've found it in this instruction. If not, continue on to the next instruction until we do find it.
                 // FIXME: ensure we encounter this first (i.e. the pattern must be matched in order)
-                if let Some((pattern_instruction, _)) =
+                if let Some((pattern_instruction, ())) =
                     shot_count_loop_start(&mut pattern_context, instruction)
                 {
                     debug!("matched shot count start: {:?}", instruction);
@@ -162,19 +162,19 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
                     next_instruction = pattern_instruction;
                     continue;
                 }
-            } else if let Some((pattern_instruction, _)) =
+            } else if let Some((pattern_instruction, ())) =
                 quantum_instruction(context, &mut pattern_context, instruction)?
             {
                 debug!("matched quantum instruction: {:?}", instruction);
                 next_instruction = pattern_instruction;
                 continue;
-            } else if let Some((pattern_instruction, _)) =
+            } else if let Some((pattern_instruction, ())) =
                 rt_record_instruction(context, &mut pattern_context, instruction)?
             {
                 debug!("matched rt_record instruction: {:?}", instruction);
                 next_instruction = pattern_instruction;
                 continue;
-            } else if let Some((_, _)) =
+            } else if let Some((_, ())) =
                 shot_count_loop_end(context, &mut pattern_context, instruction)?
             {
                 debug!("matched shot count end: {:?}", instruction);
@@ -228,8 +228,8 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
 ///
 /// If matched, this function returns the variable name assigned by the `phi` operand, for use in identifying the end of the loop,
 /// as well as the number of shots.
-pub(crate) fn shot_count_loop_start<'a, 'ctx>(
-    pattern_context: &'a mut ShotCountPatternMatchContext<'ctx>,
+pub(crate) fn shot_count_loop_start<'ctx>(
+    pattern_context: &mut ShotCountPatternMatchContext<'ctx>,
     instruction: InstructionValue<'ctx>,
 ) -> PatternResult<'ctx, ()> {
     match instruction.get_opcode() {
@@ -265,9 +265,9 @@ pub(crate) fn shot_count_loop_start<'a, 'ctx>(
 /// These three instructions must immediately follow one another as depicted here.
 ///
 /// If matched, this function returns the shot count.
-pub(crate) fn shot_count_loop_end<'a, 'ctx>(
+pub(crate) fn shot_count_loop_end<'ctx>(
     context: &QCSCompilerContext,
-    pattern_context: &'a mut ShotCountPatternMatchContext<'ctx>,
+    pattern_context: &mut ShotCountPatternMatchContext<'ctx>,
     instruction: InstructionValue<'ctx>,
 ) -> Result<PatternResult<'ctx, ()>> {
     match instruction.get_opcode() {
@@ -499,7 +499,7 @@ pub(crate) fn rt_record_instruction<'ctx>(
                     match record_type {
                         "result" => {
                             let arguments = get_qis_function_arguments(context, instruction)?;
-                            if let Some(OperationArgument::Result(result_index)) = arguments.get(0)
+                            if let Some(OperationArgument::Result(result_index)) = arguments.first()
                             {
                                 let next_ro_index =
                                     pattern_context.read_result_mapping.len() as u64;
@@ -779,7 +779,7 @@ pub(crate) fn quantum_instruction<'ctx>(
                     }
                 } else if function_name == "__quantum__qis__read_result__body" {
                     let arguments = get_qis_function_arguments(context, instruction)?;
-                    if let Some(OperationArgument::Result(result_index)) = arguments.get(0) {
+                    if let Some(OperationArgument::Result(result_index)) = arguments.first() {
                         let ro_index = pattern_context.read_result_mapping.get(result_index).ok_or_else(|| eyre!("Result index {} was never the target of a measurement operation", result_index))?;
                         pattern_context
                             .readout_instruction_mapping

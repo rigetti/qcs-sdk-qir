@@ -22,7 +22,7 @@ use inkwell::{
 use crate::context::QCSCompilerContext;
 
 #[allow(dead_code)]
-pub(crate) fn printf<'ctx>(context: &mut QCSCompilerContext<'ctx>, string: PointerValue) {
+pub(crate) fn printf(context: &mut QCSCompilerContext<'_>, string: PointerValue) -> Result<()> {
     let string_type = context.types.string();
     let printf_type = context
         .base_context
@@ -37,7 +37,8 @@ pub(crate) fn printf<'ctx>(context: &mut QCSCompilerContext<'ctx>, string: Point
             string.const_cast(string_type),
         )],
         "",
-    );
+    )?;
+    Ok(())
 }
 
 pub(crate) struct Executable<'ctx>(pub(crate) PointerValue<'ctx>);
@@ -115,23 +116,25 @@ pub(crate) fn execute_on_qvm<'ctx>(
 pub(crate) fn free_executable<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     executable: &Executable<'ctx>,
-) {
+) -> Result<()> {
     context.builder.build_call(
         context.values.free_executable_function(),
         &[executable.0.into()],
         "",
-    );
+    )?;
+    Ok(())
 }
 
 pub(crate) fn free_execution_result<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     execution_result: &ExecutionResult<'ctx>,
-) {
+) -> Result<()> {
     context.builder.build_call(
         context.values.free_execution_result_function(),
         &[execution_result.0.into()],
         "",
-    );
+    )?;
+    Ok(())
 }
 
 /// Insert a call which retrieves the executable stored at a given index in the cache.
@@ -229,7 +232,7 @@ pub(crate) fn wrap_in_shots<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     executable: &Executable<'ctx>,
     shots: u64,
-) {
+) -> Result<()> {
     context.builder.build_call(
         context.values.wrap_in_shots_function(),
         &[
@@ -241,5 +244,6 @@ pub(crate) fn wrap_in_shots<'ctx>(
                 .into(),
         ],
         "",
-    );
+    )?;
+    Ok(())
 }

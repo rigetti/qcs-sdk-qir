@@ -76,7 +76,7 @@ pub(crate) fn build_populate_executable_cache_function<'ctx>(
         context.builder.build_store(
             context.values.executable_cache().as_pointer_value(),
             actual_executable_cache,
-        );
+        )?;
 
         for index in 0..context.quil_programs.len() {
             let program_text = context.quil_programs[index].to_quil()?;
@@ -104,10 +104,10 @@ pub(crate) fn build_populate_executable_cache_function<'ctx>(
                         .into(),
                 ],
                 "",
-            );
+            )?;
         }
 
-        context.builder.build_return(None);
+        context.builder.build_return(None)?;
 
         Ok(populate_executable_array_function)
     }
@@ -133,7 +133,7 @@ pub(crate) fn transpile_module(context: &mut QCSCompilerContext) -> Result<()> {
         None => context.builder.position_at_end(entry_basic_block),
     };
 
-    context.builder.build_call(populate_function, &[], "");
+    context.builder.build_call(populate_function, &[], "")?;
 
     Ok(())
 }
@@ -261,7 +261,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
         };
 
         for (index, value) in pattern_context.parameters.iter().enumerate() {
-            call::set_param(context, &executable, index as u64, *value);
+            call::set_param(context, &executable, index as u64, *value)?;
         }
 
         let execution_result = match &context.target {
@@ -273,7 +273,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
             }
         };
 
-        call::panic_on_execution_result_failure(context, &execution_result);
+        call::panic_on_execution_result_failure(context, &execution_result)?;
 
         let cleanup_basic_block = context.base_context.insert_basic_block_after(
             basic_block,
@@ -283,11 +283,11 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
         context.builder.position_at_end(execution_basic_block);
         context
             .builder
-            .build_unconditional_branch(cleanup_basic_block);
+            .build_unconditional_branch(cleanup_basic_block)?;
 
         context.builder.position_at_end(cleanup_basic_block);
-        call::free_execution_result(context, &execution_result);
-        context.builder.build_return(None);
+        call::free_execution_result(context, &execution_result)?;
+        context.builder.build_return(None)?;
 
         let entry_function = get_entry_function(&context.module)
             .ok_or_else(|| eyre::eyre!("no entry function found in module"))?;
@@ -306,7 +306,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
 
         context
             .builder
-            .build_unconditional_branch(execution_basic_block);
+            .build_unconditional_branch(execution_basic_block)?;
 
         if last_entry_block_instruction.get_opcode() == InstructionOpcode::Return {
             last_entry_block_instruction.remove_from_basic_block();

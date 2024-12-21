@@ -178,15 +178,11 @@ pub(crate) fn replace_conditional_branch_target(
         &instruction,
     );
 
-    let original_then_block = if let Some(Either::Right(target)) = instruction.get_operand(2) {
-        target
-    } else {
+    let Some(Either::Right(original_then_block)) = instruction.get_operand(2) else {
         return Err(eyre!("expected basic block target for branch"));
     };
 
-    let original_else_block = if let Some(Either::Right(target)) = instruction.get_operand(1) {
-        target
-    } else {
+    let Some(Either::Right(original_else_block)) = instruction.get_operand(1) else {
         return Err(eyre!("expected basic block target for branch"));
     };
 
@@ -195,11 +191,8 @@ pub(crate) fn replace_conditional_branch_target(
         replace_else.unwrap_or(&original_else_block),
     );
 
-    let comparison = if let Some(Either::Left(BasicValueEnum::IntValue(comparison))) =
-        instruction.get_operand(0)
-    {
-        comparison
-    } else {
+    let Some(Either::Left(BasicValueEnum::IntValue(comparison))) = instruction.get_operand(0)
+    else {
         return Err(eyre!("expected integer comparison for branch"));
     };
 
@@ -278,10 +271,10 @@ pub(crate) fn replace_phi_clause(
 /// Print each of the operands of an instruction in debug format to stdout on its own labeled line.
 #[allow(dead_code)]
 pub(crate) fn print_all_operands(instruction: InstructionValue) {
-    println!("instruction: {:?}", instruction);
+    println!("instruction: {instruction:?}");
 
     for i in 0..instruction.get_num_operands() {
-        println!("operand {}: {:?}", i, instruction.get_operand(i));
+        println!("operand {i}: {:?}", instruction.get_operand(i));
     }
 }
 
@@ -302,7 +295,7 @@ pub(crate) fn replace_phi_clauses(
                 context,
                 current_instruction
                     .try_into()
-                    .map_err(|_| eyre!("Expected phi instruction"))?,
+                    .map_err(|()| eyre!("Expected phi instruction"))?,
                 old_basic_block,
                 new_basic_block,
                 reverse_match,

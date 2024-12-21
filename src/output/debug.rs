@@ -44,17 +44,17 @@ impl OutputFormat for DebugOutputFormat {
                         let shot_id = shot_idx + 1;
                         match recorded_output {
                             RecordedOutput::ShotStart => {
-                                output.push(format!("[shot:{} start]", shot_id));
+                                output.push(format!("[shot:{shot_id} start]"));
                             }
                             RecordedOutput::ShotEnd => {
-                                output.push(format!("[shot:{} end]", shot_id));
+                                output.push(format!("[shot:{shot_id} end]"));
                                 break;
                             }
                             RecordedOutput::ResultReadoutOffset(index) => {
                                 #[allow(clippy::cast_possible_truncation)]
                                 let index = *index as usize;
                                 if let Some(result) = shot.get(index) {
-                                    output.push(format!("[shot:{} result {}]", shot_id, result));
+                                    output.push(format!("[shot:{shot_id} result {result}]"));
                                 } else {
                                     return Err(Error::NoShotDataAtIndex(shot_id, index));
                                 }
@@ -63,21 +63,20 @@ impl OutputFormat for DebugOutputFormat {
                             | RecordedOutput::IntegerReadoutOffset(..)
                             | RecordedOutput::DoubleReadoutOffset(..) => {
                                 return Err(Error::UnimplementedRecordType(format!(
-                                    "{:?}",
-                                    recorded_output
+                                    "{recorded_output:?}",
                                 )))
                             }
                             RecordedOutput::TupleStart => {
-                                output.push(format!("[shot:{} tuple_start]", shot_id));
+                                output.push(format!("[shot:{shot_id} tuple_start]"));
                             }
                             RecordedOutput::TupleEnd => {
-                                output.push(format!("[shot:{} tuple_end]", shot_id));
+                                output.push(format!("[shot:{shot_id} tuple_end]"));
                             }
                             RecordedOutput::ArrayStart => {
-                                output.push(format!("[shot:{} array_start]", shot_id));
+                                output.push(format!("[shot:{shot_id} array_start]"));
                             }
                             RecordedOutput::ArrayEnd => {
-                                output.push(format!("[shot:{} array_end]", shot_id));
+                                output.push(format!("[shot:{shot_id} array_end]"));
                             }
                         }
                     }
@@ -85,7 +84,7 @@ impl OutputFormat for DebugOutputFormat {
                 Ok(Self(output))
             }
             RegisterData::Complex32(..) | RegisterData::F64(..) | RegisterData::I16(..) => {
-                Err(Error::UnimplementedResultType(format!("{:?}", result)))
+                Err(Error::UnimplementedResultType(format!("{result:?}")))
             }
         }
     }

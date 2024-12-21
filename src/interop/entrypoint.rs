@@ -25,7 +25,7 @@ use crate::context::QCSCompilerContext;
 pub(crate) fn get_entry_function<'ctx>(module: &Module<'ctx>) -> Option<FunctionValue<'ctx>> {
     let ns = "QuantumApplication";
     let method = "Run";
-    let entrypoint_name = format!("{}__{}__body", ns, method);
+    let entrypoint_name = format!("{ns}__{method}__body");
     get_entrypoint_function(module).or_else(|| module.get_function(&entrypoint_name))
 }
 
@@ -58,10 +58,10 @@ pub(crate) fn add_main_entrypoint(context: &mut QCSCompilerContext) -> Result<()
     let qir_entrypoint = get_entry_function(&context.module)
         .ok_or_else(|| eyre!("QIR expected entrypoint not found"))?;
 
-    context.builder.build_call(qir_entrypoint, &[], "");
+    context.builder.build_call(qir_entrypoint, &[], "")?;
     context
         .builder
-        .build_return(Some(&context.base_context.i32_type().const_int(0, false)));
+        .build_return(Some(&context.base_context.i32_type().const_int(0, false)))?;
     Ok(())
 }
 

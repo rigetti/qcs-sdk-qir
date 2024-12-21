@@ -64,7 +64,7 @@ pub(crate) struct UnitaryPatternMatchContext<'ctx> {
     /// A list of instructions to remove from the program (for substitution with Quil)
     pub(crate) instructions_to_remove: Vec<InstructionValue<'ctx>>,
 
-    /// Mapping of (read_result *Result index)->(ro memory region index)
+    /// Mapping of `(read_result *Result index)->(ro memory region index)`
     pub(crate) read_result_mapping: HashMap<u64, u64>,
 
     /// Pairings of (readout buffer index/offset) with the instruction which stores that readout value.
@@ -99,12 +99,12 @@ impl<'ctx> UnitaryPatternMatchContext<'ctx> {
 
         while let Some(instruction) = next_instruction {
             // If we haven't yet found the loop start...
-            if let Some((pattern_instruction, _)) =
+            if let Some((pattern_instruction, ())) =
                 quantum_instruction(context, &mut pattern_context, instruction)?
             {
                 debug!("matched quantum instruction: {:?}", instruction);
                 next_instruction = pattern_instruction;
-            } else if let Some((pattern_instruction, _)) =
+            } else if let Some((pattern_instruction, ())) =
                 rt_record_instruction(context, &mut pattern_context, instruction)?
             {
                 debug!("matched rt_record instruction: {:?}", instruction);
@@ -268,7 +268,7 @@ pub(crate) fn rt_record_instruction<'ctx>(
                     match record_type {
                         "result" => {
                             let arguments = get_qis_function_arguments(context, instruction)?;
-                            if let Some(OperationArgument::Result(result_index)) = arguments.get(0)
+                            if let Some(OperationArgument::Result(result_index)) = arguments.first()
                             {
                                 let next_ro_index =
                                     pattern_context.read_result_mapping.len() as u64;
@@ -548,7 +548,7 @@ pub(crate) fn quantum_instruction<'ctx>(
                     }
                 } else if function_name == "__quantum__qis__read_result__body" {
                     let arguments = get_qis_function_arguments(context, instruction)?;
-                    if let Some(OperationArgument::Result(result_index)) = arguments.get(0) {
+                    if let Some(OperationArgument::Result(result_index)) = arguments.first() {
                         let ro_index = pattern_context.read_result_mapping.get(result_index).ok_or_else(|| eyre!("Result index {} was never the target of a measurement operation", result_index))?;
                         pattern_context
                             .readout_instruction_mapping
