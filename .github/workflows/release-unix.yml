@@ -21,7 +21,7 @@ jobs:
       TESTING_TAG: v0.0.0-local
     steps:
     - name: Checkout sources
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
@@ -30,10 +30,10 @@ jobs:
         override: true
 
     - name: Cache Rust environment
-      uses: Swatinem/rust-cache@v1
+      uses: Swatinem/rust-cache@v2
 
     - name: Install LLVM
-      uses: KyleMayes/install-llvm-action@v1
+      uses: KyleMayes/install-llvm-action@v2
       with:
         version: "${{ matrix.llvm_version }}.0"
 
@@ -41,7 +41,7 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-key adv --keyserver hkps://keyserver.ubuntu.com --recv-key C99B11DEB97541F0
-        sudo apt-get update && sudo apt-get install -y libtinfo5 cmake
+        sudo apt-get update && sudo apt-get install -y libtinfo6 cmake
     
     - name: Check LLVM installation
       run: llvm-config --version
@@ -80,7 +80,7 @@ jobs:
       run: ./scripts/release/archive.sh
 
     - name: Upload archive to CI summary
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.RELEASE }}-artifacts
         path: |
