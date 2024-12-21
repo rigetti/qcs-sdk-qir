@@ -19,7 +19,7 @@ use either::Either;
 use eyre::{eyre, Result, WrapErr};
 use inkwell::{
     basic_block::BasicBlock,
-    types::AnyTypeEnum,
+    types::{AnyType, AnyTypeEnum},
     values::{
         BasicValue, BasicValueEnum, FloatValue, InstructionOpcode, InstructionValue, IntValue,
         PhiValue, PointerValue,
@@ -69,7 +69,7 @@ pub(crate) fn get_qis_function_arguments<'ctx>(
                 .ok_or_else(|| eyre!("expected a first operand in Call instruction"))?;
             if let Either::Left(BasicValueEnum::PointerValue(ptr_value)) = target {
                 if let AnyTypeEnum::StructType(struct_type) =
-                    ptr_value.get_type().get_element_type()
+                    ptr_value.get_type().as_any_type_enum()
                 {
                     let type_name = struct_type
                         .get_name()
@@ -178,15 +178,11 @@ pub(crate) fn replace_conditional_branch_target(
         &instruction,
     );
 
-    let original_then_block = if let Some(Either::Right(target)) = instruction.get_operand(2) {
-        target
-    } else {
+    let Some(Either::Right(original_then_block)) = instruction.get_operand(2) else {
         return Err(eyre!("expected basic block target for branch"));
     };
 
-    let original_else_block = if let Some(Either::Right(target)) = instruction.get_operand(1) {
-        target
-    } else {
+    let Some(Either::Right(original_else_block)) = instruction.get_operand(1) else {
         return Err(eyre!("expected basic block target for branch"));
     };
 
@@ -195,18 +191,15 @@ pub(crate) fn replace_conditional_branch_target(
         replace_else.unwrap_or(&original_else_block),
     );
 
-    let comparison = if let Some(Either::Left(BasicValueEnum::IntValue(comparison))) =
-        instruction.get_operand(0)
-    {
-        comparison
-    } else {
+    let Some(Either::Left(BasicValueEnum::IntValue(comparison))) = instruction.get_operand(0)
+    else {
         return Err(eyre!("expected integer comparison for branch"));
     };
 
     let new_instruction =
         context
             .builder
-            .build_conditional_branch(comparison, *then_block, *else_block);
+            .build_conditional_branch(comparison, *then_block, *else_block)?;
     instruction.replace_all_uses_with(&new_instruction);
     instruction.remove_from_basic_block();
     Ok(())
@@ -267,7 +260,7 @@ pub(crate) fn replace_phi_clause(
     // TODO: derive the type from the actual instruction instead of assuming i64
     let new_instruction = context
         .builder
-        .build_phi(context.base_context.i64_type(), "");
+        .build_phi(context.base_context.i64_type(), "")?;
     new_instruction.add_incoming(new_incoming_ref.as_slice());
 
     instruction.replace_all_uses_with(&new_instruction);
@@ -278,10 +271,10 @@ pub(crate) fn replace_phi_clause(
 /// Print each of the operands of an instruction in debug format to stdout on its own labeled line.
 #[allow(dead_code)]
 pub(crate) fn print_all_operands(instruction: InstructionValue) {
-    println!("instruction: {:?}", instruction);
+    println!("instruction: {instruction:?}");
 
     for i in 0..instruction.get_num_operands() {
-        println!("operand {}: {:?}", i, instruction.get_operand(i));
+        println!("operand {i}: {:?}", instruction.get_operand(i));
     }
 }
 
@@ -302,7 +295,7 @@ pub(crate) fn replace_phi_clauses(
                 context,
                 current_instruction
                     .try_into()
-                    .map_err(|_| eyre!("Expected phi instruction"))?,
+                    .map_err(|()| eyre!("Expected phi instruction"))?,
                 old_basic_block,
                 new_basic_block,
                 reverse_match,
