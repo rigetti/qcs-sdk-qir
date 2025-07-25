@@ -70,10 +70,15 @@ pub(crate) fn transpile_function<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     function: FunctionValue<'ctx>,
 ) -> eyre::Result<ProgramOutput> {
-    // validate that the function returns void, as a requirement of the Unitary format
-    let void_func_ty = context.base_context.void_type().fn_type(&[], false);
+    // Validate that the function is a nullary function that returns i64 (standards-compliant) or
+    // void (old behavior) , as a requirement of the Unitary format
     let func_ty = function.get_type();
-    if func_ty.ne(&void_func_ty) {
+    if !(func_ty.count_param_types() == 0
+        && !func_ty.is_var_arg()
+        && func_ty
+            .get_return_type()
+            .is_none_or(|ret_ty| ret_ty == context.base_context.i64_type().into()))
+    {
         return Err(eyre::eyre!(
             "expected function to return void; found {}",
             func_ty.print_to_string()
