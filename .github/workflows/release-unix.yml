@@ -10,7 +10,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, debian-bookworm]
+        # macOS: Intel processor; oldest version GitHub provides as of 2025-07-28
+        # Ubuntu: LTS version based on Debian Bookworm
+        os: [macos-13, ubuntu-22.04]
         rust:
           - stable
         llvm_version: [12, 13]
@@ -36,6 +38,10 @@ jobs:
       uses: KyleMayes/install-llvm-action@v1
       with:
         version: "${{ matrix.llvm_version }}.0"
+
+    - name: Install missing LLVM deps
+      if: contains(matrix.os, 'ubuntu')
+      run: sudo apt-get install -y libtinfo5
     
     - name: Check LLVM installation
       run: llvm-config --version
