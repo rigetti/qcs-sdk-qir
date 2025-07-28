@@ -8,7 +8,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, debian-bookworm]
+        os: [macos-latest, ubuntu-22.04]
         rust:
           - stable
         llvm_version: [12, 13]
