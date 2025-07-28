@@ -80,7 +80,9 @@ pub(crate) fn transpile_function<'ctx>(
             .is_none_or(|ret_ty| ret_ty == context.base_context.i64_type().into()))
     {
         return Err(eyre::eyre!(
-            "expected function to return i64 or (as a legacy extension) void; found {}",
+            "expected function to take no arguments \
+             and return i64 or (as a legacy extension) void; \
+             instead, function had type {}",
             func_ty.print_to_string()
         ));
     }
