@@ -44,17 +44,17 @@ impl OutputFormat for DebugOutputFormat {
                         let shot_id = shot_idx + 1;
                         match recorded_output {
                             RecordedOutput::ShotStart => {
-                                output.push(format!("[shot:{} start]", shot_id));
+                                output.push(format!("[shot:{shot_id} start]"));
                             }
                             RecordedOutput::ShotEnd => {
-                                output.push(format!("[shot:{} end]", shot_id));
+                                output.push(format!("[shot:{shot_id} end]"));
                                 break;
                             }
                             RecordedOutput::ResultReadoutOffset(index) => {
                                 #[allow(clippy::cast_possible_truncation)]
                                 let index = *index as usize;
                                 if let Some(result) = shot.get(index) {
-                                    output.push(format!("[shot:{} result {}]", shot_id, result));
+                                    output.push(format!("[shot:{shot_id} result {result}]"));
                                 } else {
                                     return Err(Error::NoShotDataAtIndex(shot_id, index));
                                 }
@@ -63,21 +63,20 @@ impl OutputFormat for DebugOutputFormat {
                             | RecordedOutput::IntegerReadoutOffset(..)
                             | RecordedOutput::DoubleReadoutOffset(..) => {
                                 return Err(Error::UnimplementedRecordType(format!(
-                                    "{:?}",
-                                    recorded_output
+                                    "{recorded_output:?}"
                                 )))
                             }
                             RecordedOutput::TupleStart => {
-                                output.push(format!("[shot:{} tuple_start]", shot_id));
+                                output.push(format!("[shot:{shot_id} tuple_start]"));
                             }
                             RecordedOutput::TupleEnd => {
-                                output.push(format!("[shot:{} tuple_end]", shot_id));
+                                output.push(format!("[shot:{shot_id} tuple_end]"));
                             }
                             RecordedOutput::ArrayStart => {
-                                output.push(format!("[shot:{} array_start]", shot_id));
+                                output.push(format!("[shot:{shot_id} array_start]"));
                             }
                             RecordedOutput::ArrayEnd => {
-                                output.push(format!("[shot:{} array_end]", shot_id));
+                                output.push(format!("[shot:{shot_id} array_end]"));
                             }
                         }
                     }
@@ -85,7 +84,7 @@ impl OutputFormat for DebugOutputFormat {
                 Ok(Self(output))
             }
             RegisterData::Complex32(..) | RegisterData::F64(..) | RegisterData::I16(..) => {
-                Err(Error::UnimplementedResultType(format!("{:?}", result)))
+                Err(Error::UnimplementedResultType(format!("{result:?}")))
             }
         }
     }
@@ -112,7 +111,7 @@ fn test_execution_result_debug_output() {
     let output = DebugOutputFormat::try_new(&execution_result, &mapping).unwrap();
     assert_eq!(output.0.len(), 15);
 
-    const EXPECTED_OUTPUT: &str = r#"
+    const EXPECTED_OUTPUT: &str = r"
 [shot:1 start]
 [shot:1 result 1]
 [shot:1 result 2]
@@ -128,12 +127,12 @@ fn test_execution_result_debug_output() {
 [shot:3 result 22]
 [shot:3 result 33]
 [shot:3 end]
-"#;
+";
 
     assert_eq!(
         super::try_format::<DebugOutputFormat>(&execution_result, &mapping).unwrap(),
         EXPECTED_OUTPUT.trim()
-    )
+    );
 }
 
 #[test]
@@ -151,7 +150,7 @@ fn test_out_of_range_debug_output() {
     let try_output = DebugOutputFormat::try_new(&execution_result, &mapping);
     if let Some(Error::NoShotDataAtIndex(shot_id, index)) = try_output.err() {
         assert_eq!(shot_id, 2);
-        assert_eq!(index, 2)
+        assert_eq!(index, 2);
     } else {
         assert!(false);
     }
