@@ -25,7 +25,7 @@ use crate::context::QCSCompilerContext;
 pub(crate) fn get_entry_function<'ctx>(module: &Module<'ctx>) -> Option<FunctionValue<'ctx>> {
     let ns = "QuantumApplication";
     let method = "Run";
-    let entrypoint_name = format!("{}__{}__body", ns, method);
+    let entrypoint_name = format!("{ns}__{method}__body");
     get_entrypoint_function(module).or_else(|| module.get_function(&entrypoint_name))
 }
 
