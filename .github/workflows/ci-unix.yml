@@ -8,7 +8,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-22.04]
+        # macOS: Intel processor; oldest version GitHub provides as of 2025-07-28
+        # Ubuntu: LTS version based on Debian Bookworm
+        os: [macos-13, ubuntu-22.04]
         rust:
           - stable
         llvm_version: [12, 13]
