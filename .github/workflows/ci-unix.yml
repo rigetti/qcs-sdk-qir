@@ -31,6 +31,13 @@ jobs:
       with:
         version: "${{ matrix.llvm_version }}.0"
 
+    - name: Show llvm-config output for debugging purposes
+      run: |
+        for flag in build-mode cflags libdir libnames system-libs version; do
+          echo "\$ llvm-config --$flag"
+          llvm-config --$flag
+        done
+
     - name: Install cargo-make
       uses: actions-rs/cargo@v1
       with:
