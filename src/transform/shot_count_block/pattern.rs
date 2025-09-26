@@ -18,6 +18,7 @@ use std::{
     collections::{hash_map::DefaultHasher, HashMap},
     convert::TryFrom,
     hash::{Hash, Hasher},
+    sync::LazyLock,
 };
 
 use either::Either;
@@ -28,7 +29,6 @@ use inkwell::{
         BasicValue, BasicValueEnum, FloatValue, FunctionValue, InstructionOpcode, InstructionValue,
     },
 };
-use lazy_static::lazy_static;
 use log::{debug, info};
 use quil_rs::{
     expression::Expression,
@@ -87,18 +87,18 @@ pub(crate) struct ShotCountPatternMatchContext<'ctx> {
     /// A list of instructions to remove from the program (for substitution with Quil)
     pub(crate) instructions_to_remove: Vec<InstructionValue<'ctx>>,
 
-    /// The terminating instruction to append to the BasicBlock in place of a conditional
+    /// The terminating instruction to append to the `BasicBlock` in place of a conditional
     /// branch on shot count
     pub(crate) next_basic_block: Option<BasicBlock<'ctx>>,
 
-    /// Mapping of (read_result *Result index)->(ro memory region index)
+    /// Mapping of `(read_result *Result index) -> (ro memory region index)`
     pub(crate) read_result_mapping: HashMap<u64, u64>,
 
     /// Pairings of (readout buffer index/offset) with the instruction which stores that readout value.
     pub(crate) readout_instruction_mapping: Vec<(u64, InstructionValue<'ctx>)>,
 
-    // All FloatValues used as instruction parameters. Indices within this Vec map to indices within the Quil
-    // MemoryRegion used to read the values at runtime.
+    /// All `FloatValues` used as instruction parameters. Indices within this Vec map to indices within the Quil
+    /// `MemoryRegion` used to read the values at runtime.
     pub(crate) parameters: Vec<FloatValue<'ctx>>,
 
     /// Whether or not to prepend a RESET instruction to the program to actively reset all qubits on each shot
@@ -128,7 +128,7 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
     /// * `basic_block`: the subject block to be searched for the pattern
     /// * `visited_functions`: list of function names which have already been transpiled. Used to prevent recursion loops.
     /// * `function_call_callback`: callback to be invoked when a function call is found within the block, in order to recursively
-    ///    transpile an LLVM module.
+    ///   transpile an LLVM module.
     pub(crate) fn from_basic_block(
         context: &mut QCSCompilerContext<'ctx>,
         basic_block: BasicBlock<'ctx>,
@@ -152,7 +152,7 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
             if pattern_context.initial_instruction.is_none() {
                 // Check if we've found it in this instruction. If not, continue on to the next instruction until we do find it.
                 // FIXME: ensure we encounter this first (i.e. the pattern must be matched in order)
-                if let Some((pattern_instruction, _)) =
+                if let Some((pattern_instruction, ())) =
                     shot_count_loop_start(&mut pattern_context, instruction)
                 {
                     debug!("matched shot count start: {:?}", instruction);
@@ -162,19 +162,19 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
                     next_instruction = pattern_instruction;
                     continue;
                 }
-            } else if let Some((pattern_instruction, _)) =
+            } else if let Some((pattern_instruction, ())) =
                 quantum_instruction(context, &mut pattern_context, instruction)?
             {
                 debug!("matched quantum instruction: {:?}", instruction);
                 next_instruction = pattern_instruction;
                 continue;
-            } else if let Some((pattern_instruction, _)) =
+            } else if let Some((pattern_instruction, ())) =
                 rt_record_instruction(context, &mut pattern_context, instruction)?
             {
                 debug!("matched rt_record instruction: {:?}", instruction);
                 next_instruction = pattern_instruction;
                 continue;
-            } else if let Some((_, _)) =
+            } else if let Some((_, ())) =
                 shot_count_loop_end(context, &mut pattern_context, instruction)?
             {
                 debug!("matched shot count end: {:?}", instruction);
@@ -228,8 +228,8 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
 ///
 /// If matched, this function returns the variable name assigned by the `phi` operand, for use in identifying the end of the loop,
 /// as well as the number of shots.
-pub(crate) fn shot_count_loop_start<'a, 'ctx>(
-    pattern_context: &'a mut ShotCountPatternMatchContext<'ctx>,
+pub(crate) fn shot_count_loop_start<'ctx>(
+    pattern_context: &mut ShotCountPatternMatchContext<'ctx>,
     instruction: InstructionValue<'ctx>,
 ) -> PatternResult<'ctx, ()> {
     match instruction.get_opcode() {
@@ -265,9 +265,9 @@ pub(crate) fn shot_count_loop_start<'a, 'ctx>(
 /// These three instructions must immediately follow one another as depicted here.
 ///
 /// If matched, this function returns the shot count.
-pub(crate) fn shot_count_loop_end<'a, 'ctx>(
+pub(crate) fn shot_count_loop_end<'ctx>(
     context: &QCSCompilerContext,
-    pattern_context: &'a mut ShotCountPatternMatchContext<'ctx>,
+    pattern_context: &mut ShotCountPatternMatchContext<'ctx>,
     instruction: InstructionValue<'ctx>,
 ) -> Result<PatternResult<'ctx, ()>> {
     match instruction.get_opcode() {
@@ -278,7 +278,7 @@ pub(crate) fn shot_count_loop_end<'a, 'ctx>(
                 .get_operand(1)
                 .and_then(operand_to_integer)
                 .and_then(|integer| integer_value_to_u64(context, integer))
-                .map_or(false, |int_value| int_value == 1);
+                == Some(1);
 
             if shot_count_increment_is_1 {
                 // Here: test that the target of the instruction is same as the shot count start variable
@@ -474,14 +474,15 @@ fn add_gate_instruction<'ctx>(
     Ok(())
 }
 
-lazy_static! {
-    static ref QIS_INTRINSIC_REGEX: Regex = Regex::new(
-        r"^__quantum__qis__(?P<operation>[^_]+)(?P<controlled>__ctl)?(?P<adjoint>__adj)?(__body)?$"
+static QIS_INTRINSIC_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"^__quantum__qis__(?P<operation>[^_]+)(?P<controlled>__ctl)?(?P<adjoint>__adj)?(__body)?$",
     )
-    .unwrap();
-    static ref RT_RECORD_OUTPUT_INTRINSIC_REGEX: Regex =
-        Regex::new("^__quantum__rt__(?P<record_type>.+)_record_output$").unwrap();
-}
+    .unwrap()
+});
+
+static RT_RECORD_OUTPUT_INTRINSIC_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new("^__quantum__rt__(?P<record_type>.+)_record_output$").unwrap());
 
 pub(crate) fn rt_record_instruction<'ctx>(
     context: &QCSCompilerContext<'ctx>,
@@ -499,7 +500,7 @@ pub(crate) fn rt_record_instruction<'ctx>(
                     match record_type {
                         "result" => {
                             let arguments = get_qis_function_arguments(context, instruction)?;
-                            if let Some(OperationArgument::Result(result_index)) = arguments.get(0)
+                            if let Some(OperationArgument::Result(result_index)) = arguments.first()
                             {
                                 let next_ro_index =
                                     pattern_context.read_result_mapping.len() as u64;
@@ -779,7 +780,7 @@ pub(crate) fn quantum_instruction<'ctx>(
                     }
                 } else if function_name == "__quantum__qis__read_result__body" {
                     let arguments = get_qis_function_arguments(context, instruction)?;
-                    if let Some(OperationArgument::Result(result_index)) = arguments.get(0) {
+                    if let Some(OperationArgument::Result(result_index)) = arguments.first() {
                         let ro_index = pattern_context.read_result_mapping.get(result_index).ok_or_else(|| eyre!("Result index {} was never the target of a measurement operation", result_index))?;
                         pattern_context
                             .readout_instruction_mapping

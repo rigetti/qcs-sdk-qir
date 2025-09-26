@@ -25,7 +25,7 @@ args = ["fmt", "--all", "--", "--check"]
 
 [tasks.clippy]
 command = "cargo"
-args = ["clippy", "--features", "${LLVM_FEATURE}", "--profile", "${PROFILE}"]
+args = ["clippy", "--features", "${LLVM_FEATURE}", "--profile", "${PROFILE}", "${@}"]
 
 [tasks.pre-ci-flow]
 dependencies = ["format-check", "clippy"]

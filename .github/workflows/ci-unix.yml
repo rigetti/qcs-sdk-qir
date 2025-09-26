@@ -8,10 +8,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        # macOS: Intel processor; oldest version GitHub provides as of 2025-07-28
+        # Ubuntu: LTS version based on Debian Bookworm
+        os: [macos-13, ubuntu-22.04]
         rust:
           - stable
         llvm_version: [12, 13, 14]
+      fail-fast: false
     steps:
     - name: Checkout sources
       uses: actions/checkout@v2
@@ -31,10 +34,17 @@ jobs:
         version: "${{ matrix.llvm_version }}.0"
 
     - name: Install missing LLVM deps
-      if: matrix.os == 'ubuntu-latest'
+      if: contains(matrix.os, 'ubuntu')
+      run: sudo apt-get install -y libtinfo5
+
+    - name: Show llvm-config output for debugging purposes
       run: |
         sudo apt-key adv --keyserver hkps://keyserver.ubuntu.com --recv-key C99B11DEB97541F0
         sudo apt-get update && sudo apt-get install -y libtinfo5 cmake
+        for flag in build-mode cflags libdir libnames system-libs version; do
+          echo "\$ llvm-config --$flag"
+          llvm-config --$flag
+        done
 
     - name: Install cargo-make
       uses: actions-rs/cargo@v1

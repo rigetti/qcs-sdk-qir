@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::LazyLock};
 
 use eyre::{eyre, Result};
 use inkwell::{
     basic_block::BasicBlock,
     values::{FloatValue, InstructionOpcode, InstructionValue},
 };
-use lazy_static::lazy_static;
 use log::{debug, info};
 use quil_rs::{
     expression::Expression,
@@ -64,14 +63,14 @@ pub(crate) struct UnitaryPatternMatchContext<'ctx> {
     /// A list of instructions to remove from the program (for substitution with Quil)
     pub(crate) instructions_to_remove: Vec<InstructionValue<'ctx>>,
 
-    /// Mapping of (read_result *Result index)->(ro memory region index)
+    /// Mapping of `(read_result *Result index) - >(ro memory region index)`
     pub(crate) read_result_mapping: HashMap<u64, u64>,
 
     /// Pairings of (readout buffer index/offset) with the instruction which stores that readout value.
     pub(crate) readout_instruction_mapping: Vec<(u64, InstructionValue<'ctx>)>,
 
-    // All FloatValues used as instruction parameters. Indices within this Vec map to indices within the Quil
-    // MemoryRegion used to read the values at runtime.
+    /// All `FloatValues` used as instruction parameters. Indices within this Vec map to indices within the Quil
+    /// `MemoryRegion` used to read the values at runtime.
     pub(crate) parameters: Vec<FloatValue<'ctx>>,
 
     /// Whether or not to prepend a RESET instruction to the program to actively reset all qubits on each shot
@@ -99,12 +98,12 @@ impl<'ctx> UnitaryPatternMatchContext<'ctx> {
 
         while let Some(instruction) = next_instruction {
             // If we haven't yet found the loop start...
-            if let Some((pattern_instruction, _)) =
+            if let Some((pattern_instruction, ())) =
                 quantum_instruction(context, &mut pattern_context, instruction)?
             {
                 debug!("matched quantum instruction: {:?}", instruction);
                 next_instruction = pattern_instruction;
-            } else if let Some((pattern_instruction, _)) =
+            } else if let Some((pattern_instruction, ())) =
                 rt_record_instruction(context, &mut pattern_context, instruction)?
             {
                 debug!("matched rt_record instruction: {:?}", instruction);
@@ -243,14 +242,15 @@ fn add_gate_instruction<'ctx>(
     Ok(())
 }
 
-lazy_static! {
-    static ref QIS_INTRINSIC_REGEX: Regex = Regex::new(
-        r"^__quantum__qis__(?P<operation>[^_]+)(?P<controlled>__ctl)?(?P<adjoint>__adj)?(__body)?$"
+static QIS_INTRINSIC_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"^__quantum__qis__(?P<operation>[^_]+)(?P<controlled>__ctl)?(?P<adjoint>__adj)?(__body)?$",
     )
-    .unwrap();
-    static ref RT_RECORD_OUTPUT_INTRINSIC_REGEX: Regex =
-        Regex::new("^__quantum__rt__(?P<record_type>.+)_record_output$").unwrap();
-}
+    .unwrap()
+});
+
+static RT_RECORD_OUTPUT_INTRINSIC_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new("^__quantum__rt__(?P<record_type>.+)_record_output$").unwrap());
 
 pub(crate) fn rt_record_instruction<'ctx>(
     context: &QCSCompilerContext<'ctx>,
@@ -268,7 +268,7 @@ pub(crate) fn rt_record_instruction<'ctx>(
                     match record_type {
                         "result" => {
                             let arguments = get_qis_function_arguments(context, instruction)?;
-                            if let Some(OperationArgument::Result(result_index)) = arguments.get(0)
+                            if let Some(OperationArgument::Result(result_index)) = arguments.first()
                             {
                                 let next_ro_index =
                                     pattern_context.read_result_mapping.len() as u64;
@@ -548,7 +548,7 @@ pub(crate) fn quantum_instruction<'ctx>(
                     }
                 } else if function_name == "__quantum__qis__read_result__body" {
                     let arguments = get_qis_function_arguments(context, instruction)?;
-                    if let Some(OperationArgument::Result(result_index)) = arguments.get(0) {
+                    if let Some(OperationArgument::Result(result_index)) = arguments.first() {
                         let ro_index = pattern_context.read_result_mapping.get(result_index).ok_or_else(|| eyre!("Result index {} was never the target of a measurement operation", result_index))?;
                         pattern_context
                             .readout_instruction_mapping

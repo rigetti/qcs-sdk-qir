@@ -133,7 +133,7 @@ pub(crate) fn transpile_module(context: &mut QCSCompilerContext) -> Result<()> {
             context.builder.position_before(&instruction);
         }
         None => context.builder.position_at_end(entry_basic_block),
-    };
+    }
 
     context.builder.build_call(populate_function, &[], "");
 
