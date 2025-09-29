@@ -74,7 +74,6 @@ pub(crate) fn build_populate_executable_cache_function<'ctx>(
             .ok_or_else(|| eyre!("create_executable_cache does not have a return value"))?
             .into_pointer_value();
 
-        // TODO: should the returned value be used?
         context.builder.build_store(
             context.values.executable_cache().as_pointer_value(),
             actual_executable_cache,
@@ -91,7 +90,6 @@ pub(crate) fn build_populate_executable_cache_function<'ctx>(
                     .build_global_string(&program_text, "quil_program")?
             };
 
-            // TODO: should the returned value be used?
             context.builder.build_call(
                 context.values.add_executable_cache_item(),
                 &[
@@ -110,7 +108,6 @@ pub(crate) fn build_populate_executable_cache_function<'ctx>(
             )?;
         }
 
-        // TODO: should the returned value be used?
         context.builder.build_return(None)?;
 
         Ok(populate_executable_array_function)
@@ -137,7 +134,6 @@ pub(crate) fn transpile_module(context: &mut QCSCompilerContext) -> Result<()> {
         None => context.builder.position_at_end(entry_basic_block),
     }
 
-    // TODO: should the returned value be used?
     context.builder.build_call(populate_function, &[], "")?;
 
     Ok(())
@@ -281,14 +277,12 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
         );
 
         context.builder.position_at_end(execution_basic_block);
-        // TODO: should the returned value be used?
         context
             .builder
             .build_unconditional_branch(cleanup_basic_block)?;
 
         context.builder.position_at_end(cleanup_basic_block);
         call::free_execution_result(context, &execution_result)?;
-        // TODO: should the returned value be used?
         context.builder.build_return(None)?;
 
         let entry_function = get_entry_function(&context.module)
@@ -306,7 +300,6 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
             .builder
             .position_before(&last_entry_block_instruction);
 
-        // TODO: should the returned value be used?
         context
             .builder
             .build_unconditional_branch(execution_basic_block)?;
