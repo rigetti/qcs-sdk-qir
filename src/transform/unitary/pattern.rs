@@ -20,7 +20,9 @@ use inkwell::{
     values::{FloatValue, InstructionOpcode, InstructionValue},
 };
 use log::{debug, info};
-use quil_rs::{
+use qcs::quil_rs::instruction::{Gate, Instruction, Measurement};
+use qcs::quil_rs::Program;
+use qcs::quil_rs::{
     expression::Expression,
     instruction::{GateModifier, MemoryReference, Qubit},
 };
@@ -55,7 +57,7 @@ type PatternResult<'ctx, T> = Option<(Option<InstructionValue<'ctx>>, T)>;
 #[derive(Debug, Default)]
 pub(crate) struct UnitaryPatternMatchContext<'ctx> {
     /// The quil program transpiled from quantum intrinsics
-    pub(crate) quil_program: quil_rs::Program,
+    pub(crate) quil_program: Program,
 
     /// Signifies output to be recorded at the end of program execution
     pub(crate) recorded_output: Vec<RecordedOutput>,
@@ -101,12 +103,12 @@ impl<'ctx> UnitaryPatternMatchContext<'ctx> {
             if let Some((pattern_instruction, ())) =
                 quantum_instruction(context, &mut pattern_context, instruction)?
             {
-                debug!("matched quantum instruction: {:?}", instruction);
+                debug!("matched quantum instruction: {instruction:?}");
                 next_instruction = pattern_instruction;
             } else if let Some((pattern_instruction, ())) =
                 rt_record_instruction(context, &mut pattern_context, instruction)?
             {
-                debug!("matched rt_record instruction: {:?}", instruction);
+                debug!("matched rt_record instruction: {instruction:?}");
                 next_instruction = pattern_instruction;
             } else if instruction.get_opcode() == InstructionOpcode::Return {
                 return Ok(pattern_context);
@@ -123,8 +125,8 @@ impl<'ctx> UnitaryPatternMatchContext<'ctx> {
 
     /// If the program contains any executable instructions (gates, pulses, etc) return that
     /// information; otherwise, return `None` indicating that the pattern was not matched.
-    pub(crate) fn get_program_data(&self) -> Option<&quil_rs::Program> {
-        if self.quil_program.to_instructions(false).is_empty() {
+    pub(crate) fn get_program_data(&self) -> Option<&Program> {
+        if self.quil_program.body_instructions().count() == 0 {
             None
         } else {
             Some(&self.quil_program)
@@ -212,7 +214,7 @@ fn add_gate_instruction<'ctx>(
 
     let qubits = (parameter_count..parameter_count + qubit_count)
         .map(|arg_index| {
-            Ok(quil_rs::instruction::Qubit::Fixed(*match_qis_argument!(
+            Ok(Qubit::Fixed(*match_qis_argument!(
                 Qubit,
                 arguments,
                 arg_index,
@@ -231,7 +233,7 @@ fn add_gate_instruction<'ctx>(
         modifiers.push(GateModifier::Controlled);
     }
 
-    let instruction = quil_rs::instruction::Instruction::Gate(quil_rs::instruction::Gate {
+    let instruction = Instruction::Gate(Gate {
         name: name.to_owned(),
         parameters,
         qubits,
@@ -524,8 +526,8 @@ pub(crate) fn quantum_instruction<'ctx>(
                                 .or_insert_with(|| next_ro_index);
 
                             pattern_context.quil_program.add_instruction(
-                                quil_rs::instruction::Instruction::Measurement(
-                                    quil_rs::instruction::Measurement {
+                                Instruction::Measurement(
+                                    Measurement {
                                         target: Some(MemoryReference {
                                             name: String::from("ro"),
                                             index: *ro_buffer_index,

@@ -10,35 +10,31 @@ edition = "2021"
 license = "Apache-2.0"
 
 [dependencies]
+clap = { version = "4.5", features = ["derive"], optional = true }
 either = "1.6.1"
-env_logger = "0.9.0"
+env_logger = "0.11.0"
 eyre = "0.6.6"
+inkwell = { version = "0.6.0", features = ["target-x86"] }
 lazy_static = "1.4.0"
 log = "0.4.14"
 num-complex = "0.4.0"
-quil-rs = "0.12.0"  # Part of public API, major versions are breaking changes.
+# qcs re-exports quil-rs. We use this re-exported version for consistency.
+# quil-rs types are part of the public API, major versions are breaking changes.
+qcs = { version = "0.25.11", optional = true }
 regex = "1.5.4"
-clap = { version = "3.1.6", features = ["derive"], optional = true }
-serde_json = { version = "1", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
-thiserror = "1"
-qcs = { version = "0.3.2", optional = true }
-
-[dependencies.inkwell]
-version = "0.1.0"
-git = "https://github.com/TheDan64/inkwell"
-branch = "master"
-features = ["target-x86"]
+serde_json = { version = "1", optional = true }
+thiserror = "2"
 
 [dev-dependencies]
 insta = "1.8.0"
-trycmd = "0.13.3"
+trycmd = "0.15"
 
 [features]
 cli = ["clap"]
 output = ["qcs"]   # Enables the `output` module
-default = ["serde_support", "cli", "output"]
-llvm12-0 = ["inkwell/llvm12-0"]
+default = ["serde_support", "cli", "output", "llvm13-0"]
+#llvm12-0 = ["inkwell/llvm12-0"]
 llvm13-0 = ["inkwell/llvm13-0"]
 serde_support = ["serde", "serde_json"]
 

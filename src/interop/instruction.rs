@@ -204,7 +204,7 @@ pub(crate) fn replace_conditional_branch_target(
     let new_instruction =
         context
             .builder
-            .build_conditional_branch(comparison, *then_block, *else_block);
+            .build_conditional_branch(comparison, *then_block, *else_block)?;
     instruction.replace_all_uses_with(&new_instruction);
     instruction.remove_from_basic_block();
     Ok(())
@@ -265,7 +265,7 @@ pub(crate) fn replace_phi_clause(
     // TODO: derive the type from the actual instruction instead of assuming i64
     let new_instruction = context
         .builder
-        .build_phi(context.base_context.i64_type(), "");
+        .build_phi(context.base_context.i64_type(), "")?;
     new_instruction.add_incoming(new_incoming_ref.as_slice());
 
     instruction.replace_all_uses_with(&new_instruction);

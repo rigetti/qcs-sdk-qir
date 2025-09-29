@@ -20,7 +20,7 @@ use inkwell::{
 };
 
 fn build_string_type(context: &Context) -> PointerType {
-    context.i8_type().ptr_type(AddressSpace::Generic)
+    context.i8_type().ptr_type(AddressSpace::default())
 }
 
 const TYPE_NAME_EXECUTION_RESULT: &str = "ExecutionResult";

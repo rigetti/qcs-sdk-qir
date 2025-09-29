@@ -143,7 +143,7 @@ fn main() -> Result<()> {
                     #[cfg(not(feature = "serde_support"))]
                     {
                         println!("shot count: {}\n", output.shot_count);
-                        println!("quil:\n{}", output.program.to_string(true));
+                        println!("quil:\n{}", output.program.to_quil());
                         println!("recorded output:\n{:#?}", output.recorded_output);
                     }
                 }
@@ -155,7 +155,7 @@ fn main() -> Result<()> {
 
                     #[cfg(not(feature = "serde_support"))]
                     {
-                        println!("quil:\n{}", output.program.to_string(true));
+                        println!("quil:\n{}", output.program.to_quil());
                         println!("recorded output:\n{:#?}", output.recorded_output);
                     }
                 }

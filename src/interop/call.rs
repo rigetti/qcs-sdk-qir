@@ -54,7 +54,7 @@ pub(crate) fn executable_from_quil<'ctx>(
             quil.const_cast(string_type),
         )],
         "",
-    );
+    )?;
     Ok(Executable(
         executable_call_site_value
             .try_as_basic_value()
@@ -81,7 +81,7 @@ pub(crate) fn execute_on_qpu<'ctx>(
                 .into(),
         ],
         "",
-    );
+    )?;
 
     Ok(ExecutionResult(
         execution_result
@@ -100,7 +100,7 @@ pub(crate) fn execute_on_qvm<'ctx>(
         context.values.execute_on_qvm_function(),
         &[executable.0.into()],
         "",
-    );
+    )?;
 
     Ok(ExecutionResult(
         execution_result
@@ -141,13 +141,13 @@ pub(crate) fn get_executable<'ctx>(
 ) -> Result<Executable<'ctx>> {
     let cache_pointer = context
         .builder
-        .build_load(context.values.executable_cache().as_pointer_value(), "");
+        .build_load(context.values.executable_cache().as_pointer_value(), "")?;
 
     let call_site_value = context.builder.build_call(
         context.values.read_from_executable_cache(),
         &[cache_pointer.into(), index.into()],
         "",
-    );
+    )?;
 
     Ok(Executable(
         call_site_value
@@ -189,7 +189,7 @@ pub(crate) fn get_readout_bit<'ctx>(
                 .into(),
         ],
         "",
-    );
+    )?;
 
     Ok(result
         .try_as_basic_value()
