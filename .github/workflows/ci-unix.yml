@@ -24,6 +24,7 @@ jobs:
       with:
         toolchain: ${{ matrix.rust }}
         override: true
+        components: rustfmt, clippy
 
     - name: Cache Rust environment
       uses: Swatinem/rust-cache@v1
