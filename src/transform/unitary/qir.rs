@@ -264,7 +264,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
         };
 
         for (index, value) in pattern_context.parameters.iter().enumerate() {
-            call::set_param(context, &executable, index as u64, *value);
+            call::set_param(context, &executable, index as u64, *value)?;
         }
 
         let execution_result = match &context.target {
@@ -276,7 +276,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
             }
         };
 
-        call::panic_on_execution_result_failure(context, &execution_result);
+        call::panic_on_execution_result_failure(context, &execution_result)?;
 
         let cleanup_basic_block = context.base_context.insert_basic_block_after(
             basic_block,
@@ -290,7 +290,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
             .build_unconditional_branch(cleanup_basic_block)?;
 
         context.builder.position_at_end(cleanup_basic_block);
-        call::free_execution_result(context, &execution_result);
+        call::free_execution_result(context, &execution_result)?;
         // TODO: should the returned value be used?
         context.builder.build_return(None)?;
 

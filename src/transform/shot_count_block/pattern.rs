@@ -157,7 +157,7 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
                 if let Some((pattern_instruction, ())) =
                     shot_count_loop_start(&mut pattern_context, instruction)
                 {
-                    debug!("matched shot count start: {:?}", instruction);
+                    debug!("matched shot count start: {instruction:?}");
                     pattern_context
                         .recorded_output
                         .push(RecordedOutput::ShotStart);
@@ -167,19 +167,19 @@ impl<'ctx> ShotCountPatternMatchContext<'ctx> {
             } else if let Some((pattern_instruction, ())) =
                 quantum_instruction(context, &mut pattern_context, instruction)?
             {
-                debug!("matched quantum instruction: {:?}", instruction);
+                debug!("matched quantum instruction: {instruction:?}");
                 next_instruction = pattern_instruction;
                 continue;
             } else if let Some((pattern_instruction, ())) =
                 rt_record_instruction(context, &mut pattern_context, instruction)?
             {
-                debug!("matched rt_record instruction: {:?}", instruction);
+                debug!("matched rt_record instruction: {instruction:?}");
                 next_instruction = pattern_instruction;
                 continue;
             } else if let Some((_, ())) =
                 shot_count_loop_end(context, &mut pattern_context, instruction)?
             {
-                debug!("matched shot count end: {:?}", instruction);
+                debug!("matched shot count end: {instruction:?}");
                 pattern_context
                     .recorded_output
                     .push(RecordedOutput::ShotEnd);
@@ -507,7 +507,7 @@ pub(crate) fn rt_record_instruction<'ctx>(
                                 let next_ro_index =
                                     pattern_context.read_result_mapping.len() as u64;
                                 let index = pattern_context.read_result_mapping.entry(*result_index).or_insert_with(|| {
-                                    log::info!("Result index {} was read but was never the target of a measurement operation, so recorded output value will always be 0", result_index);
+                                    log::info!("Result index {result_index} was read but was never the target of a measurement operation, so recorded output value will always be 0");
                                     next_ro_index
                                 });
                                 pattern_context

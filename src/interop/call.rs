@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use eyre::{eyre, Result};
+use inkwell::builder::BuilderError;
 use inkwell::{
     module::Linkage,
     types::BasicMetadataTypeEnum,
@@ -22,7 +23,7 @@ use inkwell::{
 use crate::context::QCSCompilerContext;
 
 #[allow(dead_code)]
-pub(crate) fn printf(context: &mut QCSCompilerContext<'_>, string: PointerValue) {
+pub(crate) fn printf(context: &mut QCSCompilerContext<'_>, string: PointerValue) -> Result<(), BuilderError> {
     let string_type = context.types.string();
     let printf_type = context
         .base_context
@@ -37,7 +38,7 @@ pub(crate) fn printf(context: &mut QCSCompilerContext<'_>, string: PointerValue)
             string.const_cast(string_type),
         )],
         "",
-    );
+    ).map(|_| ())
 }
 
 pub(crate) struct Executable<'ctx>(pub(crate) PointerValue<'ctx>);
@@ -115,23 +116,23 @@ pub(crate) fn execute_on_qvm<'ctx>(
 pub(crate) fn free_executable<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     executable: &Executable<'ctx>,
-) {
+) -> Result<(), BuilderError> {
     context.builder.build_call(
         context.values.free_executable_function(),
         &[executable.0.into()],
         "",
-    );
+    ).map(|_| ())
 }
 
 pub(crate) fn free_execution_result<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     execution_result: &ExecutionResult<'ctx>,
-) {
+) -> Result<(), BuilderError> {
     context.builder.build_call(
         context.values.free_execution_result_function(),
         &[execution_result.0.into()],
         "",
-    );
+    ).map(|_| ())
 }
 
 /// Insert a call which retrieves the executable stored at a given index in the cache.
@@ -163,12 +164,12 @@ pub(crate) fn get_executable<'ctx>(
 pub(crate) fn panic_on_execution_result_failure<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     execution_result: &ExecutionResult<'ctx>,
-) {
+) -> Result<(), BuilderError> {
     context.builder.build_call(
         context.values.panic_on_failure_function(),
         &[execution_result.0.into()],
         "",
-    );
+    ).map(|_| ())
 }
 
 pub(crate) fn get_readout_bit<'ctx>(
@@ -203,7 +204,7 @@ pub(crate) fn set_param<'ctx>(
     executable: &Executable<'ctx>,
     index: u64,
     value: FloatValue<'ctx>,
-) {
+) -> Result<(), BuilderError> {
     context.builder.build_call(
         context.values.set_param_function(),
         &[
@@ -217,14 +218,14 @@ pub(crate) fn set_param<'ctx>(
             value.into(),
         ],
         "",
-    );
+    ).map(|_| ())
 }
 
 pub(crate) fn wrap_in_shots<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     executable: &Executable<'ctx>,
     shots: u64,
-) {
+) -> Result<(), BuilderError> {
     context.builder.build_call(
         context.values.wrap_in_shots_function(),
         &[
@@ -236,5 +237,5 @@ pub(crate) fn wrap_in_shots<'ctx>(
                 .into(),
         ],
         "",
-    );
+    ).map(|_| ())
 }

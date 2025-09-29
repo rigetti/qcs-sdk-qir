@@ -275,7 +275,7 @@ pub(crate) fn rt_record_instruction<'ctx>(
                                 let next_ro_index =
                                     pattern_context.read_result_mapping.len() as u64;
                                 let index = pattern_context.read_result_mapping.entry(*result_index).or_insert_with(|| {
-                                    log::info!("Result index {} was read but was never the target of a measurement operation, so recorded output value will always be 0", result_index);
+                                    log::info!("Result index {result_index} was read but was never the target of a measurement operation, so recorded output value will always be 0");
                                     next_ro_index
                                 });
                                 pattern_context

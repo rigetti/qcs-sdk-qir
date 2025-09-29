@@ -19,7 +19,7 @@ use inkwell::{
     AddressSpace,
 };
 
-fn build_string_type(context: &Context) -> PointerType {
+fn build_string_type(context: &'_ Context) -> PointerType<'_> {
     context.i8_type().ptr_type(AddressSpace::default())
 }
 
