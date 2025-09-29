@@ -525,17 +525,15 @@ pub(crate) fn quantum_instruction<'ctx>(
                                 .entry(result)
                                 .or_insert_with(|| next_ro_index);
 
-                            pattern_context.quil_program.add_instruction(
-                                Instruction::Measurement(
-                                    Measurement {
-                                        target: Some(MemoryReference {
-                                            name: String::from("ro"),
-                                            index: *ro_buffer_index,
-                                        }),
-                                        qubit: Qubit::Fixed(qubit),
-                                    },
-                                ),
-                            );
+                            pattern_context
+                                .quil_program
+                                .add_instruction(Instruction::Measurement(Measurement {
+                                    target: Some(MemoryReference {
+                                        name: String::from("ro"),
+                                        index: *ro_buffer_index,
+                                    }),
+                                    qubit: Qubit::Fixed(qubit),
+                                }));
 
                             true
                         }

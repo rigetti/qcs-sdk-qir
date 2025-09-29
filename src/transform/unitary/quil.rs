@@ -22,7 +22,9 @@ use inkwell::types::AnyType;
 
 use inkwell::{basic_block::BasicBlock, values::FunctionValue};
 
-use qcs::quil_rs::instruction::{Declaration, Instruction, Pragma, PragmaArgument, Reset, ScalarType, Vector};
+use qcs::quil_rs::instruction::{
+    Declaration, Instruction, Pragma, PragmaArgument, Reset, ScalarType, Vector,
+};
 use qcs::quil_rs::Program;
 #[cfg(feature = "serde_support")]
 use serde::{ser::SerializeStruct, Serialize, Serializer};
@@ -50,8 +52,8 @@ impl Serialize for ProgramOutput {
     where
         S: Serializer,
     {
-        use serde::ser::Error;
         use qcs::quil_rs::quil::Quil;
+        use serde::ser::Error;
         let mut output = serializer.serialize_struct("ProgramOutput", 3)?;
         let quil = self.program.to_quil().map_err(S::Error::custom)?;
         output.serialize_field("program", &quil)?;
@@ -105,8 +107,8 @@ pub(crate) fn transpile_function<'ctx>(
 
 #[test]
 fn validates_unitary_ret_void() {
-    use crate::transform::unitary::quil::transpile_module;
     use crate::context::context::ContextOptions;
+    use crate::transform::unitary::quil::transpile_module;
 
     let context = inkwell::context::Context::create();
     let path = "tests/fixtures/programs/unitary/non_void_terminator.bc";
@@ -155,37 +157,31 @@ pub(crate) fn build_quil_program<'ctx, 'p: 'ctx>(
 ) -> eyre::Result<ProgramOutput> {
     let mut program = pattern_context.quil_program.clone();
 
-    program.add_instruction(Instruction::Declaration(
-        Declaration {
-            name: String::from("ro"),
-            size: Vector {
-                data_type: ScalarType::Bit,
-                length: pattern_context.read_result_mapping.len() as u64,
-            },
-            sharing: None,
+    program.add_instruction(Instruction::Declaration(Declaration {
+        name: String::from("ro"),
+        size: Vector {
+            data_type: ScalarType::Bit,
+            length: pattern_context.read_result_mapping.len() as u64,
         },
-    ));
+        sharing: None,
+    }));
 
     if !pattern_context.get_dynamic_parameters().is_empty() {
-        program.add_instruction(Instruction::Declaration(
-            Declaration {
-                name: String::from(PARAMETER_MEMORY_REGION_NAME),
-                size: Vector {
-                    data_type: ScalarType::Real,
-                    length: pattern_context.get_dynamic_parameters().len() as u64,
-                },
-                sharing: None,
+        program.add_instruction(Instruction::Declaration(Declaration {
+            name: String::from(PARAMETER_MEMORY_REGION_NAME),
+            size: Vector {
+                data_type: ScalarType::Real,
+                length: pattern_context.get_dynamic_parameters().len() as u64,
             },
-        ));
+            sharing: None,
+        }));
     }
 
     if pattern_context.use_active_reset {
         // Prepend a reset to the program via copy
         let instructions = program.to_instructions();
         let mut new_program = Program::new();
-        new_program.add_instruction(Instruction::Reset(
-            Reset { qubit: None },
-        ));
+        new_program.add_instruction(Instruction::Reset(Reset { qubit: None }));
         for instruction in instructions {
             new_program.add_instruction(instruction);
         }
@@ -196,13 +192,14 @@ pub(crate) fn build_quil_program<'ctx, 'p: 'ctx>(
         // Prepend a pragma to the program via copy
         let instructions = program.to_instructions();
         let mut new_program = Program::new();
-        new_program.add_instruction(Instruction::Pragma(
-            Pragma {
-                name: String::from("INITIAL_REWIRING"),
-                arguments: vec![PragmaArgument::Identifier(format!("\"{}\"", rewiring_pragma.clone()))],
-                data: None,
-            },
-        ));
+        new_program.add_instruction(Instruction::Pragma(Pragma {
+            name: String::from("INITIAL_REWIRING"),
+            arguments: vec![PragmaArgument::Identifier(format!(
+                "\"{}\"",
+                rewiring_pragma.clone()
+            ))],
+            data: None,
+        }));
         for instruction in instructions {
             new_program.add_instruction(instruction);
         }

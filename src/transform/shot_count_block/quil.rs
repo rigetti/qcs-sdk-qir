@@ -17,7 +17,9 @@
 // executing those quil instructions.
 use eyre::{eyre, Result};
 use inkwell::{basic_block::BasicBlock, values::FunctionValue};
-use qcs::quil_rs::instruction::{Declaration, Instruction, Pragma, PragmaArgument, Reset, ScalarType, Vector};
+use qcs::quil_rs::instruction::{
+    Declaration, Instruction, Pragma, PragmaArgument, Reset, ScalarType, Vector,
+};
 
 use qcs::quil_rs::Program;
 #[cfg(feature = "serde_support")]
@@ -124,37 +126,31 @@ pub(crate) fn build_quil_program<'ctx, 'p: 'ctx>(
     if let Some((program, shots)) = pattern_context.get_program_data() {
         let mut program = program.clone();
 
-        program.add_instruction(Instruction::Declaration(
-            Declaration {
-                name: String::from("ro"),
-                size: Vector {
-                    data_type: ScalarType::Bit,
-                    length: pattern_context.read_result_mapping.len() as u64,
-                },
-                sharing: None,
+        program.add_instruction(Instruction::Declaration(Declaration {
+            name: String::from("ro"),
+            size: Vector {
+                data_type: ScalarType::Bit,
+                length: pattern_context.read_result_mapping.len() as u64,
             },
-        ));
+            sharing: None,
+        }));
 
         if !pattern_context.get_dynamic_parameters().is_empty() {
-            program.add_instruction(Instruction::Declaration(
-                Declaration {
-                    name: String::from(PARAMETER_MEMORY_REGION_NAME),
-                    size: Vector {
-                        data_type: ScalarType::Real,
-                        length: pattern_context.get_dynamic_parameters().len() as u64,
-                    },
-                    sharing: None,
+            program.add_instruction(Instruction::Declaration(Declaration {
+                name: String::from(PARAMETER_MEMORY_REGION_NAME),
+                size: Vector {
+                    data_type: ScalarType::Real,
+                    length: pattern_context.get_dynamic_parameters().len() as u64,
                 },
-            ));
+                sharing: None,
+            }));
         }
 
         if pattern_context.use_active_reset {
             // Prepend a reset to the program via copy
             let instructions = program.to_instructions();
             let mut new_program = Program::new();
-            new_program.add_instruction(Instruction::Reset(
-                Reset { qubit: None },
-            ));
+            new_program.add_instruction(Instruction::Reset(Reset { qubit: None }));
             for instruction in instructions {
                 new_program.add_instruction(instruction);
             }
@@ -165,13 +161,14 @@ pub(crate) fn build_quil_program<'ctx, 'p: 'ctx>(
             // Prepend a pragma to the program via copy
             let instructions = program.to_instructions();
             let mut new_program = Program::new();
-            new_program.add_instruction(Instruction::Pragma(
-                Pragma {
-                    name: String::from("INITIAL_REWIRING"),
-                    arguments: vec![PragmaArgument::Identifier(format!("\"{}\"", rewiring_pragma.clone()))],
-                    data: None,
-                },
-            ));
+            new_program.add_instruction(Instruction::Pragma(Pragma {
+                name: String::from("INITIAL_REWIRING"),
+                arguments: vec![PragmaArgument::Identifier(format!(
+                    "\"{}\"",
+                    rewiring_pragma.clone()
+                ))],
+                data: None,
+            }));
             for instruction in instructions {
                 new_program.add_instruction(instruction);
             }

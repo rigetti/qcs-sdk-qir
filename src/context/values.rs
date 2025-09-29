@@ -381,7 +381,8 @@ fn build_parameter_memory_region_name<'ctx>(
         None => unsafe {
             // NOTE: this segfaults if the builder is not already positioned within a basic block
             // see https://github.com/TheDan64/inkwell/issues/32
-            builder.build_global_string(PARAMETER_MEMORY_REGION_NAME, GLOBAL_NAME_PARAM_MEM_REGION)?
+            builder
+                .build_global_string(PARAMETER_MEMORY_REGION_NAME, GLOBAL_NAME_PARAM_MEM_REGION)?
         },
     };
 
@@ -406,7 +407,9 @@ fn build_quantum_processor_id<'ctx>(
             },
         };
 
-        Ok(Some(global_string.as_pointer_value().const_cast(types.string())))
+        Ok(Some(
+            global_string.as_pointer_value().const_cast(types.string()),
+        ))
     } else {
         Ok(None)
     }
