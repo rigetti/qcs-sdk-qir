@@ -1,5 +1,4 @@
 on:
-  pull_request:
   release:
     types: [created]
 
@@ -31,9 +30,17 @@ jobs:
         echo ${{github.event}}
 
     - name: Install Rust toolchain
+      if: github.event_name != 'release'
       uses: dtolnay/rust-toolchain@master
       with:
         toolchain: ${{ matrix.rust }}
+
+    - name: Install Rust toolchain
+      if: github.event_name == 'release'
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust }}
+        components: rustfmt,clippy
 
     - name: Cache Rust environment
       uses: Swatinem/rust-cache@v2
@@ -51,12 +58,14 @@ jobs:
       run: llvm-config --version
 
     - name: Install cargo-make
+      if: github.event_name == 'release'
       uses: taiki-e/install-action@cargo-make
 
     - name: Install build environment dependencies
       uses: lukka/get-cmake@latest
 
     - name: Run cargo build, test, fmt, clippy
+      if: github.event_name == 'release'
       env:
         LLVM_FEATURE: llvm${{ matrix.llvm_version }}-0
         PROFILE: "release"
@@ -81,6 +90,7 @@ jobs:
       run: ./scripts/release/archive.sh
 
     - name: Upload archive to CI summary
+      if: github.event_name != 'release'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.RELEASE }}-artifacts
@@ -89,7 +99,7 @@ jobs:
           ${{ env.CHECKSUM }}
     
     - name: Upload archive to Release ${{ env.TAG }}
-      if: github.event_name == 'release_created'
+      if: github.event_name == 'release'
       uses: softprops/action-gh-release@v2
       with:
         files: |
