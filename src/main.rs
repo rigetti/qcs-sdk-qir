@@ -16,10 +16,13 @@
 
 use std::{path::PathBuf, str::FromStr};
 
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use eyre::{Report, Result};
 
 use qcs_sdk_qir::{ExecutionTarget, PatchOptions};
+
+#[cfg(not(feature = "serde_support"))]
+use qcs::quil_rs::quil::Quil;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -37,7 +40,6 @@ enum QcsQirCli {
 
         llvm_bitcode_path: PathBuf,
 
-        #[clap(parse(from_os_str))]
         bitcode_out: Option<PathBuf>,
 
         #[clap(long)]
@@ -69,7 +71,7 @@ enum QcsQirCli {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, ValueEnum)]
 enum QirFormat {
     ShotCount,
     Unitary,
@@ -143,7 +145,7 @@ fn main() -> Result<()> {
                     #[cfg(not(feature = "serde_support"))]
                     {
                         println!("shot count: {}\n", output.shot_count);
-                        println!("quil:\n{}", output.program.to_string(true));
+                        println!("quil:\n{}", output.program.to_quil());
                         println!("recorded output:\n{:#?}", output.recorded_output);
                     }
                 }
@@ -155,7 +157,7 @@ fn main() -> Result<()> {
 
                     #[cfg(not(feature = "serde_support"))]
                     {
-                        println!("quil:\n{}", output.program.to_string(true));
+                        println!("quil:\n{}", output.program.to_quil());
                         println!("recorded output:\n{:#?}", output.recorded_output);
                     }
                 }

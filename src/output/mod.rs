@@ -24,6 +24,7 @@ use thiserror::Error;
 
 /// All errors that may be returned from [`try_format`].
 #[derive(Error, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub enum Error {
     /// The [`RegisterData`] is a type that is not implemented.
     #[error("the execution result type `{0}` is unimplemented")]

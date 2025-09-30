@@ -19,8 +19,8 @@ use inkwell::{
     AddressSpace,
 };
 
-fn build_string_type(context: &Context) -> PointerType {
-    context.i8_type().ptr_type(AddressSpace::Generic)
+fn build_string_type(context: &'_ Context) -> PointerType<'_> {
+    context.i8_type().ptr_type(AddressSpace::default())
 }
 
 const TYPE_NAME_EXECUTION_RESULT: &str = "ExecutionResult";

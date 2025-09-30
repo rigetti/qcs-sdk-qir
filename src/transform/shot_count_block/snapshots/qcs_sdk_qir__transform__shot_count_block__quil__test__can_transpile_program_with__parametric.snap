@@ -1,11 +1,10 @@
 ---
 source: src/transform/shot_count_block/quil.rs
-expression: result.program.to_string(true)
+expression: result.program.to_quil_or_debug()
 ---
-DECLARE __qir_param REAL[1]
 DECLARE ro BIT[0]
+DECLARE __qir_param REAL[1]
 RZ(__qir_param[0]) 0
 RZ(__qir_param[0]) 0
 RZ(2) 0
 RZ(12.123456789) 0
-

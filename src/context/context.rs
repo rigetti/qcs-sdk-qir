@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use eyre::Result;
+use qcs::quil_rs::Program;
 
 use crate::interop::load::load_module_from_bitcode;
 
@@ -25,7 +26,7 @@ pub(crate) struct QCSCompilerContext<'ctx> {
     pub(crate) types: Types<'ctx>,
     pub(crate) values: Values<'ctx>,
     pub(crate) target: ExecutionTarget,
-    pub(crate) quil_programs: Vec<quil_rs::program::Program>,
+    pub(crate) quil_programs: Vec<Program>,
     pub(crate) options: ContextOptions,
 }
 

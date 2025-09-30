@@ -18,7 +18,11 @@ use inkwell::{
     values::{AnyValue, FunctionValue, InstructionValue},
 };
 use log::{debug, info};
-use quil_rs::instruction::Vector;
+use qcs::quil_rs::instruction::{
+    Declaration, Instruction, Pragma, PragmaArgument, Reset, ScalarType, Vector,
+};
+use qcs::quil_rs::quil::Quil;
+use qcs::quil_rs::Program;
 
 use crate::interop::{
     call,
@@ -69,7 +73,7 @@ pub(crate) fn build_populate_executable_cache_function<'ctx>(
                     .const_int(context.quil_programs.len() as u64, false)
                     .into()],
                 "",
-            )
+            )?
             .try_as_basic_value()
             .left()
             .ok_or_else(|| eyre!("create_executable_cache does not have a return value"))?
@@ -78,17 +82,17 @@ pub(crate) fn build_populate_executable_cache_function<'ctx>(
         context.builder.build_store(
             context.values.executable_cache().as_pointer_value(),
             actual_executable_cache,
-        );
+        )?;
 
         for index in 0..context.quil_programs.len() {
-            let program_text = context.quil_programs[index].to_string(true);
+            let program_text = context.quil_programs[index].to_quil()?;
 
             let quil_program_global_string = unsafe {
                 // NOTE: this segfaults if the builder is not already positioned within a basic block
                 // see https://github.com/TheDan64/inkwell/issues/32
                 context
                     .builder
-                    .build_global_string(&program_text, "quil_program")
+                    .build_global_string(&program_text, "quil_program")?
             };
 
             context.builder.build_call(
@@ -106,10 +110,10 @@ pub(crate) fn build_populate_executable_cache_function<'ctx>(
                         .into(),
                 ],
                 "",
-            );
+            )?;
         }
 
-        context.builder.build_return(None);
+        context.builder.build_return(None)?;
 
         Ok(populate_executable_array_function)
     }
@@ -135,7 +139,7 @@ pub(crate) fn transpile_module(context: &mut QCSCompilerContext) -> Result<()> {
         None => context.builder.position_at_end(entry_basic_block),
     }
 
-    context.builder.build_call(populate_function, &[], "");
+    context.builder.build_call(populate_function, &[], "")?;
 
     Ok(())
 }
@@ -181,42 +185,36 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
         debug!(
             "inserting quil program with {} shots: {}",
             shots,
-            program.to_string(true)
+            program.to_quil_or_debug()
         );
 
         let mut program = program.clone();
 
-        program.add_instruction(quil_rs::instruction::Instruction::Declaration(
-            quil_rs::instruction::Declaration {
-                name: String::from("ro"),
-                size: Vector {
-                    data_type: quil_rs::instruction::ScalarType::Bit,
-                    length: pattern_context.read_result_mapping.len() as u64,
-                },
-                sharing: None,
+        program.add_instruction(Instruction::Declaration(Declaration {
+            name: String::from("ro"),
+            size: Vector {
+                data_type: ScalarType::Bit,
+                length: pattern_context.read_result_mapping.len() as u64,
             },
-        ));
+            sharing: None,
+        }));
 
         if !pattern_context.get_dynamic_parameters().is_empty() {
-            program.add_instruction(quil_rs::instruction::Instruction::Declaration(
-                quil_rs::instruction::Declaration {
-                    name: String::from(PARAMETER_MEMORY_REGION_NAME),
-                    size: Vector {
-                        data_type: quil_rs::instruction::ScalarType::Real,
-                        length: pattern_context.get_dynamic_parameters().len() as u64,
-                    },
-                    sharing: None,
+            program.add_instruction(Instruction::Declaration(Declaration {
+                name: String::from(PARAMETER_MEMORY_REGION_NAME),
+                size: Vector {
+                    data_type: ScalarType::Real,
+                    length: pattern_context.get_dynamic_parameters().len() as u64,
                 },
-            ));
+                sharing: None,
+            }));
         }
 
         if pattern_context.use_active_reset {
             // Prepend a reset to the program via copy
-            let instructions = program.to_instructions(true);
-            let mut new_program = quil_rs::program::Program::new();
-            new_program.add_instruction(quil_rs::instruction::Instruction::Reset(
-                quil_rs::instruction::Reset { qubit: None },
-            ));
+            let instructions = program.to_instructions();
+            let mut new_program = Program::new();
+            new_program.add_instruction(Instruction::Reset(Reset { qubit: None }));
             for instruction in instructions {
                 new_program.add_instruction(instruction);
             }
@@ -225,15 +223,15 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
 
         if let Some(rewiring_pragma) = &context.options.rewiring_pragma {
             // Prepend a pragma to the program via copy
-            let instructions = program.to_instructions(true);
-            let mut new_program = quil_rs::program::Program::new();
-            new_program.add_instruction(quil_rs::instruction::Instruction::Pragma(
-                quil_rs::instruction::Pragma {
-                    name: String::from("INITIAL_REWIRING"),
-                    arguments: vec![format!("\"{}\"", rewiring_pragma.clone())],
-                    data: None,
-                },
-            ));
+            let instructions = program.to_instructions();
+            let mut new_program = Program::new();
+            new_program.add_instruction(Instruction::Pragma(Pragma {
+                name: String::from("INITIAL_REWIRING"),
+                arguments: vec![PragmaArgument::Identifier(
+                    format!("\"{rewiring_pragma}\"",),
+                )],
+                data: None,
+            }));
             for instruction in instructions {
                 new_program.add_instruction(instruction);
             }
@@ -260,23 +258,23 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
                     .const_int(quil_program_index as u64, false),
             )?
         } else {
-            let program_text = program.to_string(true);
+            let program_text = program.to_quil()?;
             let quil_program_global_string = unsafe {
                 // NOTE: this segfaults if the builder is not already positioned within a basic block
                 // see https://github.com/TheDan64/inkwell/issues/32
                 context
                     .builder
-                    .build_global_string(&program_text, "quil_program")
+                    .build_global_string(&program_text, "quil_program")?
             };
 
             // Insert the shared library calls to send this program for execution
             call::executable_from_quil(context, quil_program_global_string.as_pointer_value())?
         };
 
-        call::wrap_in_shots(context, &executable, shots);
+        call::wrap_in_shots(context, &executable, shots)?;
 
         for (index, value) in pattern_context.parameters.iter().enumerate() {
-            call::set_param(context, &executable, index as u64, *value);
+            call::set_param(context, &executable, index as u64, *value)?;
         }
 
         let execution_result = match &context.target {
@@ -288,11 +286,11 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
             }
         };
 
-        call::panic_on_execution_result_failure(context, &execution_result);
+        call::panic_on_execution_result_failure(context, &execution_result)?;
 
         // After execution we branch into the reduction block, which is everything left over after the
         // quantum instructions are removed.
-        context.builder.build_unconditional_branch(basic_block);
+        context.builder.build_unconditional_branch(basic_block)?;
 
         // We place our cursor right after the beginning of the loop, which should come before any reduction instructions.
         context.builder.position_at(
@@ -334,10 +332,10 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
         .wrap_err("expected the basic block to have a conditional 'else' target")?;
 
         context.builder.position_at_end(cleanup_basic_block);
-        call::free_execution_result(context, &execution_result);
+        call::free_execution_result(context, &execution_result)?;
         context
             .builder
-            .build_unconditional_branch(original_next_block);
+            .build_unconditional_branch(original_next_block)?;
 
         replace_conditional_branch_target(
             context,
@@ -367,10 +365,7 @@ pub(crate) fn insert_quil_program<'ctx, 'p: 'ctx>(
             execution_basic_block.get_name().to_string_lossy()
         );
     } else {
-        debug!(
-            "not inserting quil program, pattern context: {:?}",
-            pattern_context
-        );
+        debug!("not inserting quil program, pattern context: {pattern_context:?}");
     }
     Ok(())
 }

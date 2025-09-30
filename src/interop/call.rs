@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use eyre::{eyre, Result};
+use inkwell::builder::BuilderError;
 use inkwell::{
     module::Linkage,
     types::BasicMetadataTypeEnum,
@@ -22,7 +23,10 @@ use inkwell::{
 use crate::context::QCSCompilerContext;
 
 #[allow(dead_code)]
-pub(crate) fn printf(context: &mut QCSCompilerContext<'_>, string: PointerValue) {
+pub(crate) fn printf(
+    context: &mut QCSCompilerContext<'_>,
+    string: PointerValue,
+) -> Result<(), BuilderError> {
     let string_type = context.types.string();
     let printf_type = context
         .base_context
@@ -31,13 +35,16 @@ pub(crate) fn printf(context: &mut QCSCompilerContext<'_>, string: PointerValue)
     let printf = context
         .module
         .add_function("printf", printf_type, Some(Linkage::External));
-    context.builder.build_call(
-        printf,
-        &[BasicMetadataValueEnum::PointerValue(
-            string.const_cast(string_type),
-        )],
-        "",
-    );
+    context
+        .builder
+        .build_call(
+            printf,
+            &[BasicMetadataValueEnum::PointerValue(
+                string.const_cast(string_type),
+            )],
+            "",
+        )
+        .map(|_| ())
 }
 
 pub(crate) struct Executable<'ctx>(pub(crate) PointerValue<'ctx>);
@@ -54,7 +61,7 @@ pub(crate) fn executable_from_quil<'ctx>(
             quil.const_cast(string_type),
         )],
         "",
-    );
+    )?;
     Ok(Executable(
         executable_call_site_value
             .try_as_basic_value()
@@ -81,7 +88,7 @@ pub(crate) fn execute_on_qpu<'ctx>(
                 .into(),
         ],
         "",
-    );
+    )?;
 
     Ok(ExecutionResult(
         execution_result
@@ -100,7 +107,7 @@ pub(crate) fn execute_on_qvm<'ctx>(
         context.values.execute_on_qvm_function(),
         &[executable.0.into()],
         "",
-    );
+    )?;
 
     Ok(ExecutionResult(
         execution_result
@@ -115,23 +122,29 @@ pub(crate) fn execute_on_qvm<'ctx>(
 pub(crate) fn free_executable<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     executable: &Executable<'ctx>,
-) {
-    context.builder.build_call(
-        context.values.free_executable_function(),
-        &[executable.0.into()],
-        "",
-    );
+) -> Result<(), BuilderError> {
+    context
+        .builder
+        .build_call(
+            context.values.free_executable_function(),
+            &[executable.0.into()],
+            "",
+        )
+        .map(|_| ())
 }
 
 pub(crate) fn free_execution_result<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     execution_result: &ExecutionResult<'ctx>,
-) {
-    context.builder.build_call(
-        context.values.free_execution_result_function(),
-        &[execution_result.0.into()],
-        "",
-    );
+) -> Result<(), BuilderError> {
+    context
+        .builder
+        .build_call(
+            context.values.free_execution_result_function(),
+            &[execution_result.0.into()],
+            "",
+        )
+        .map(|_| ())
 }
 
 /// Insert a call which retrieves the executable stored at a given index in the cache.
@@ -141,13 +154,13 @@ pub(crate) fn get_executable<'ctx>(
 ) -> Result<Executable<'ctx>> {
     let cache_pointer = context
         .builder
-        .build_load(context.values.executable_cache().as_pointer_value(), "");
+        .build_load(context.values.executable_cache().as_pointer_value(), "")?;
 
     let call_site_value = context.builder.build_call(
         context.values.read_from_executable_cache(),
         &[cache_pointer.into(), index.into()],
         "",
-    );
+    )?;
 
     Ok(Executable(
         call_site_value
@@ -163,12 +176,15 @@ pub(crate) fn get_executable<'ctx>(
 pub(crate) fn panic_on_execution_result_failure<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     execution_result: &ExecutionResult<'ctx>,
-) {
-    context.builder.build_call(
-        context.values.panic_on_failure_function(),
-        &[execution_result.0.into()],
-        "",
-    );
+) -> Result<(), BuilderError> {
+    context
+        .builder
+        .build_call(
+            context.values.panic_on_failure_function(),
+            &[execution_result.0.into()],
+            "",
+        )
+        .map(|_| ())
 }
 
 pub(crate) fn get_readout_bit<'ctx>(
@@ -189,7 +205,7 @@ pub(crate) fn get_readout_bit<'ctx>(
                 .into(),
         ],
         "",
-    );
+    )?;
 
     Ok(result
         .try_as_basic_value()
@@ -203,38 +219,44 @@ pub(crate) fn set_param<'ctx>(
     executable: &Executable<'ctx>,
     index: u64,
     value: FloatValue<'ctx>,
-) {
-    context.builder.build_call(
-        context.values.set_param_function(),
-        &[
-            BasicMetadataValueEnum::PointerValue(executable.0),
-            context.values.parameter_memory_region_name().into(),
-            context
-                .base_context
-                .i32_type()
-                .const_int(index, false)
-                .into(),
-            value.into(),
-        ],
-        "",
-    );
+) -> Result<(), BuilderError> {
+    context
+        .builder
+        .build_call(
+            context.values.set_param_function(),
+            &[
+                BasicMetadataValueEnum::PointerValue(executable.0),
+                context.values.parameter_memory_region_name().into(),
+                context
+                    .base_context
+                    .i32_type()
+                    .const_int(index, false)
+                    .into(),
+                value.into(),
+            ],
+            "",
+        )
+        .map(|_| ())
 }
 
 pub(crate) fn wrap_in_shots<'ctx>(
     context: &mut QCSCompilerContext<'ctx>,
     executable: &Executable<'ctx>,
     shots: u64,
-) {
-    context.builder.build_call(
-        context.values.wrap_in_shots_function(),
-        &[
-            BasicMetadataValueEnum::PointerValue(executable.0),
-            context
-                .base_context
-                .i32_type()
-                .const_int(shots, false)
-                .into(),
-        ],
-        "",
-    );
+) -> Result<(), BuilderError> {
+    context
+        .builder
+        .build_call(
+            context.values.wrap_in_shots_function(),
+            &[
+                BasicMetadataValueEnum::PointerValue(executable.0),
+                context
+                    .base_context
+                    .i32_type()
+                    .const_int(shots, false)
+                    .into(),
+            ],
+            "",
+        )
+        .map(|_| ())
 }

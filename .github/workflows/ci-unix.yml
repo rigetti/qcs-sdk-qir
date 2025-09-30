@@ -1,4 +1,7 @@
-on: [ push, pull_request ]
+on:
+  push:
+    branches: [main]
+  pull_request:
 
 name: CI (macos/linux)
 
@@ -24,6 +27,7 @@ jobs:
       with:
         toolchain: ${{ matrix.rust }}
         override: true
+        components: rustfmt, clippy
 
     - name: Cache Rust environment
       uses: Swatinem/rust-cache@v1
@@ -45,10 +49,7 @@ jobs:
         done
 
     - name: Install cargo-make
-      uses: actions-rs/cargo@v1
-      with:
-        command: install
-        args: --debug cargo-make
+      uses: taiki-e/install-action@cargo-make
 
     - name: Run cargo build, test, fmt, clippy
       env:
