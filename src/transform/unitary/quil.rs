@@ -194,10 +194,9 @@ pub(crate) fn build_quil_program<'ctx, 'p: 'ctx>(
         let mut new_program = Program::new();
         new_program.add_instruction(Instruction::Pragma(Pragma {
             name: String::from("INITIAL_REWIRING"),
-            arguments: vec![PragmaArgument::Identifier(format!(
-                "\"{}\"",
-                rewiring_pragma.clone()
-            ))],
+            arguments: vec![PragmaArgument::Identifier(
+                format!("\"{rewiring_pragma}\"",),
+            )],
             data: None,
         }));
         for instruction in instructions {
