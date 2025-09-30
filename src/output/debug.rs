@@ -148,10 +148,5 @@ fn test_out_of_range_debug_output() {
     ];
 
     let try_output = DebugOutputFormat::try_new(&execution_result, &mapping);
-    if let Some(Error::NoShotDataAtIndex(shot_id, index)) = try_output.err() {
-        assert_eq!(shot_id, 2);
-        assert_eq!(index, 2);
-    } else {
-        panic!();
-    }
+    assert_eq!(Some(Error::NoShotDataAtIndex(2, 2)), try_output.err());
 }
