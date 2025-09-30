@@ -20,22 +20,33 @@ jobs:
       C_SDK_VERSION: v0.1.1
       LLVM_VERSION: ${{ matrix.llvm_version }}
       LLVM_FULL_VERSION: ${{ matrix.llvm_version }}.0.1
-      TESTING_TAG: v0.0.0-local
     steps:
     - name: Checkout sources
-      uses: actions/checkout@v2
+      uses: actions/checkout@v5
+
+    - name: debug event
+      run: |
+        echo ${{github.event_name}}
+        echo ${{github.event}}
 
     - name: Install Rust toolchain
-      uses: actions-rs/toolchain@v1
+      if: github.event_name != 'release'
+      uses: dtolnay/rust-toolchain@master
       with:
         toolchain: ${{ matrix.rust }}
-        override: true
+
+    - name: Install Rust toolchain
+      if: github.event_name == 'release'
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust }}
+        components: rustfmt,clippy
 
     - name: Cache Rust environment
-      uses: Swatinem/rust-cache@v1
+      uses: Swatinem/rust-cache@v2
 
     - name: Install LLVM
-      uses: KyleMayes/install-llvm-action@v1
+      uses: KyleMayes/install-llvm-action@v2
       with:
         version: "${{ matrix.llvm_version }}.0"
 
@@ -47,15 +58,14 @@ jobs:
       run: llvm-config --version
 
     - name: Install cargo-make
-      uses: actions-rs/cargo@v1
-      with:
-        command: install
-        args: --debug cargo-make
+      if: github.event_name == 'release'
+      uses: taiki-e/install-action@cargo-make
 
     - name: Install build environment dependencies
       uses: lukka/get-cmake@latest
 
     - name: Run cargo build, test, fmt, clippy
+      if: github.event_name == 'release'
       env:
         LLVM_FEATURE: llvm${{ matrix.llvm_version }}-0
         PROFILE: "release"
@@ -80,7 +90,8 @@ jobs:
       run: ./scripts/release/archive.sh
 
     - name: Upload archive to CI summary
-      uses: actions/upload-artifact@v3
+      if: github.event_name != 'release'
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.RELEASE }}-artifacts
         path: |
@@ -88,8 +99,8 @@ jobs:
           ${{ env.CHECKSUM }}
     
     - name: Upload archive to Release ${{ env.TAG }}
-      if: env.TAG != env.TESTING_TAG
-      uses: softprops/action-gh-release@v1
+      if: github.event_name == 'release'
+      uses: softprops/action-gh-release@v2
       with:
         files: |
           ${{ env.ARCHIVE }}
