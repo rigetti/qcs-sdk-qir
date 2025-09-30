@@ -84,6 +84,9 @@ jobs:
         cat .release-env >> $GITHUB_ENV
 
     - name: Build release artifacts
+      env:
+        # Required by zmq-sys
+        CMAKE_POLICY_VERSION_MINIMUM: 3.5
       run: ./scripts/release/build.sh
 
     - name: Collect release artifacts and build archive
