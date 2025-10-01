@@ -20,9 +20,9 @@ use inkwell::{
     values::{FloatValue, InstructionOpcode, InstructionValue},
 };
 use log::{debug, info};
-use qcs::quil_rs::instruction::{Gate, Instruction, Measurement};
-use qcs::quil_rs::Program;
-use qcs::quil_rs::{
+use quil_rs::instruction::{Gate, Instruction, Measurement};
+use quil_rs::Program;
+use quil_rs::{
     expression::Expression,
     instruction::{GateModifier, MemoryReference, Qubit},
 };

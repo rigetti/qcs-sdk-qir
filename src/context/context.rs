@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use eyre::Result;
-use qcs::quil_rs::Program;
+use quil_rs::Program;
 
 use crate::interop::load::load_module_from_bitcode;
 

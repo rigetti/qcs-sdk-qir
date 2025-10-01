@@ -1,6 +1,6 @@
 use std::fs::read;
 
-use qcs::quil_rs::quil::Quil;
+use quil_rs::quil::Quil;
 use qcs::RegisterData;
 use qcs_sdk_qir::{
     output::{self, DebugOutputFormat},
