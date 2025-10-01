@@ -1,11 +1,11 @@
 use std::fs::read;
 
-use quil_rs::quil::Quil;
 use qcs::RegisterData;
 use qcs_sdk_qir::{
     output::{self, DebugOutputFormat},
     transpile_qir_to_quil,
 };
+use quil_rs::quil::Quil;
 
 #[test]
 fn transpile_qir_to_quil_bell_state() {
