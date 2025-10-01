@@ -43,3 +43,11 @@ serde_support = ["serde", "serde_json"]
 name = "qcs-sdk-qir"
 path = "src/main.rs"
 required-features = ["cli"]
+
+[[test]]
+name = "public_lib_api"
+required-features = ["output", "serde_support"]
+
+[[test]]
+name = "snapshots"
+required-features = ["output", "serde_support"]
