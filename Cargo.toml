@@ -18,9 +18,10 @@ inkwell = { version = "0.6.0", features = ["target-x86"] }
 lazy_static = "1.4.0"
 log = "0.4.14"
 num-complex = "0.4.0"
-# qcs re-exports quil-rs. We use this re-exported version for consistency.
-# quil-rs types are part of the public API, major versions are breaking changes.
 qcs = { version = "0.25.11", optional = true }
+# qcs re-exports quil-rs. We use the same version as it for consistency.
+# quil-rs types are part of the public API, major versions are breaking changes.
+quil-rs = "0.29"
 regex = "1.5.4"
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", optional = true }
@@ -34,11 +35,19 @@ trycmd = "0.15"
 cli = ["clap"]
 output = ["qcs"]   # Enables the `output` module
 default = ["serde_support", "cli", "output"]
-llvm12-0 = ["inkwell/llvm12-0"]
 llvm13-0 = ["inkwell/llvm13-0"]
+llvm14-0 = ["inkwell/llvm14-0"]
 serde_support = ["serde", "serde_json"]
 
 [[bin]]
 name = "qcs-sdk-qir"
 path = "src/main.rs"
 required-features = ["cli"]
+
+[[test]]
+name = "public_lib_api"
+required-features = ["output", "serde_support"]
+
+[[test]]
+name = "snapshots"
+required-features = ["output", "serde_support"]

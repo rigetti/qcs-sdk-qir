@@ -17,11 +17,11 @@
 // executing those quil instructions.
 use eyre::{eyre, Result};
 use inkwell::{basic_block::BasicBlock, values::FunctionValue};
-use qcs::quil_rs::instruction::{
+use quil_rs::instruction::{
     Declaration, Instruction, Pragma, PragmaArgument, Reset, ScalarType, Vector,
 };
 
-use qcs::quil_rs::Program;
+use quil_rs::Program;
 #[cfg(feature = "serde_support")]
 use serde::{ser::SerializeStruct, Serialize, Serializer};
 
@@ -47,7 +47,7 @@ impl Serialize for ProgramOutput {
     where
         S: Serializer,
     {
-        use qcs::quil_rs::quil::Quil;
+        use quil_rs::quil::Quil;
         use serde::ser::Error;
 
         let mut output = serializer.serialize_struct("ProgramOutput", 3)?;
@@ -194,7 +194,7 @@ mod test {
         use super::*;
         use crate::context::context::{ContextOptions, QCSCompilerContext};
         use crate::context::target::ExecutionTarget;
-        use qcs::quil_rs::quil::Quil;
+        use quil_rs::quil::Quil;
 
         macro_rules! make_snapshot_test {
             ($name:ident) => {

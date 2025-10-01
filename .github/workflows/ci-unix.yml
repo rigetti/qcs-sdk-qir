@@ -16,7 +16,7 @@ jobs:
         os: [macos-13, ubuntu-22.04]
         rust:
           - stable
-        llvm_version: [12, 13]
+        llvm_version: [13, 14]
       fail-fast: false
     steps:
     - name: Checkout sources

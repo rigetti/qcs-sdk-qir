@@ -22,7 +22,7 @@ use eyre::{Report, Result};
 use qcs_sdk_qir::{ExecutionTarget, PatchOptions};
 
 #[cfg(not(feature = "serde_support"))]
-use qcs::quil_rs::quil::Quil;
+use quil_rs::quil::Quil;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -145,7 +145,7 @@ fn main() -> Result<()> {
                     #[cfg(not(feature = "serde_support"))]
                     {
                         println!("shot count: {}\n", output.shot_count);
-                        println!("quil:\n{}", output.program.to_quil());
+                        println!("quil:\n{}", output.program.to_quil()?);
                         println!("recorded output:\n{:#?}", output.recorded_output);
                     }
                 }
@@ -157,7 +157,7 @@ fn main() -> Result<()> {
 
                     #[cfg(not(feature = "serde_support"))]
                     {
-                        println!("quil:\n{}", output.program.to_quil());
+                        println!("quil:\n{}", output.program.to_quil()?);
                         println!("recorded output:\n{:#?}", output.recorded_output);
                     }
                 }

@@ -18,11 +18,11 @@ use inkwell::{
     values::{AnyValue, FunctionValue, InstructionValue},
 };
 use log::{debug, info};
-use qcs::quil_rs::instruction::{
+use quil_rs::instruction::{
     Declaration, Instruction, Pragma, PragmaArgument, Reset, ScalarType, Vector,
 };
-use qcs::quil_rs::quil::Quil;
-use qcs::quil_rs::Program;
+use quil_rs::quil::Quil;
+use quil_rs::Program;
 
 use crate::interop::{
     call,

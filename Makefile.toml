@@ -14,6 +14,12 @@ NO_HELPER_LIB_BUILD = { value = "0", condition = { env_not_set = [
     "NO_HELPER_LIB_BUILD",
 ] } }
 
+[tasks.hack]
+private = true
+command = "cargo"
+args = ["hack", "--feature-powerset", "--mutually-exclusive-features", "llvm13-0,llvm14-0",
+"--at-least-one-of", "llvm13-0,llvm14-0", "${HACK_COMMAND}", "--profile", "${PROFILE}", "--all-targets"]
+
 [tasks.assemble-llvm]
 command = "find"
 description = "Assemble all LLVM .ll files in this package into bitcode"
@@ -24,8 +30,9 @@ command = "cargo"
 args = ["fmt", "--all", "--", "--check"]
 
 [tasks.clippy]
-command = "cargo"
-args = ["clippy", "--features", "${LLVM_FEATURE}", "--profile", "${PROFILE}", "${@}"]
+clear = true
+run_task = "hack"
+env = { HACK_COMMAND = "clippy" }
 
 [tasks.pre-ci-flow]
 dependencies = ["format-check", "clippy"]
@@ -34,7 +41,9 @@ dependencies = ["format-check", "clippy"]
 args = ["build", "--features", "${LLVM_FEATURE}", "--profile", "${PROFILE}"]
 
 [tasks.test]
-args = ["test", "--features", "${LLVM_FEATURE}", "--profile", "${PROFILE}"]
+clear = true
+run_task = "hack"
+env = { HACK_COMMAND = "test" }
 
 [tasks.release-setup]
 command = "./scripts/release/setup.sh"
